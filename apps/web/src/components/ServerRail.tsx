@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useServerStore } from "../stores/serverStore";
 import { useChannelStore } from "../stores/channelStore";
-import { useMessageStore } from "../stores/messageStore";
+import { useUnreadStore } from "../stores/unreadStore.js";
 
 function ServerIcon({
   server,
@@ -16,22 +16,34 @@ function ServerIcon({
   const isRounded = hovered || isSelected;
   const initial = server.name.charAt(0).toUpperCase();
 
+  const channels = useChannelStore((s) => s.channels);
+  const channelUnreads = useUnreadStore((s) => s.channels);
+  const hasUnread = useMemo(
+    () =>
+      channels
+        .filter((c) => c.serverId === server.id)
+        .some((ch) => (channelUnreads[ch.id]?.unreadCount ?? 0) > 0),
+    [channels, channelUnreads, server.id],
+  );
+
   return (
     <div className="relative flex items-center justify-center py-1">
       {isSelected && (
         <span className="absolute left-0 h-10 w-1 rounded-r-sm bg-text-primary" />
+      )}
+      {!isSelected && hasUnread && (
+        <span className="absolute left-0 h-2 w-1 rounded-r-sm bg-text-primary" />
       )}
 
       <button
         onClick={onClick}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="flex h-12 w-12 items-center justify-center text-lg font-semibold transition-all duration-200"
-        style={{
-          borderRadius: isRounded ? "16px" : "24px",
-          backgroundColor: isSelected ? "#7C3AED" : "#232330",
-          color: isSelected ? "#fff" : "#A1A1AA",
-        }}
+        className={`flex h-12 w-12 items-center justify-center text-lg font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 outline-none ${
+          isRounded ? "rounded-[16px]" : "rounded-[24px]"
+        } ${
+          isSelected ? "bg-primary text-white" : "bg-bg-elevated text-text-secondary"
+        }`}
         title={server.name}
       >
         {initial}
@@ -68,17 +80,17 @@ export default function ServerRail() {
   return (
     <nav className="hidden md:flex flex-col items-center w-[72px] min-w-[72px] bg-bg-deepest py-3 overflow-y-auto scrollbar-thin">
       <button
-        className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-white transition-all duration-200 hover:rounded-[16px]"
+        className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary transition-all duration-200 hover:rounded-[16px] hover:shadow-[0_0_12px_rgba(124,58,237,0.4)] focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
         title="Home"
       >
-        C
+        <img src="/icon0.svg" alt="Concord" width={28} height={28} />
       </button>
 
       <RailDivider />
 
       <div className="relative py-1">
         <button
-          className="flex h-12 w-12 items-center justify-center rounded-3xl bg-bg-elevated text-text-secondary transition-all duration-200 hover:rounded-[16px] hover:bg-primary hover:text-white"
+          className="flex h-12 w-12 items-center justify-center rounded-3xl bg-bg-elevated text-text-secondary transition-all duration-200 hover:rounded-[16px] hover:bg-primary hover:text-white focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
           title="Direct Messages"
         >
           <DmIcon />
@@ -102,13 +114,13 @@ export default function ServerRail() {
         <RailDivider />
         <button
           onClick={handleAddServer}
-          className="flex h-12 w-12 items-center justify-center rounded-3xl bg-bg-elevated text-2xl text-green-500 transition-all duration-200 hover:rounded-[16px] hover:bg-green-500 hover:text-white"
+          className="flex h-12 w-12 items-center justify-center rounded-3xl bg-bg-elevated text-2xl text-green-500 transition-all duration-200 hover:rounded-[16px] hover:bg-green-500 hover:text-white focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
           title="Add a Server"
         >
           +
         </button>
         <button
-          className="flex h-12 w-12 items-center justify-center rounded-3xl bg-bg-elevated text-text-secondary transition-all duration-200 hover:rounded-[16px] hover:bg-green-500 hover:text-white"
+          className="flex h-12 w-12 items-center justify-center rounded-3xl bg-bg-elevated text-text-secondary transition-all duration-200 hover:rounded-[16px] hover:bg-green-500 hover:text-white focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
           title="Explore Servers"
         >
           <CompassIcon />
