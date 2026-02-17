@@ -604,7 +604,7 @@ To pull communities off Discord, we need migration tools:
 
 ## 14. Development Phases
 
-### Phase 0 — Foundation (Weeks 1–4)
+### Phase 0 — Foundation (v0.1.0) ✅
 - Project scaffolding: monorepo (Turborepo), linting, CI/CD.
 - PostgreSQL schema + migrations (Drizzle ORM).
 - Auth system (registration, login, JWT sessions).
@@ -612,7 +612,7 @@ To pull communities off Discord, we need migration tools:
 - WebSocket gateway: connection, heartbeat, identify, basic events.
 - React app shell: login, server list, channel list, message view.
 
-### Phase 1 — Chat MVP (Weeks 5–10)
+### Phase 1 — Chat MVP (v0.2.0)
 - Full message CRUD with real-time sync.
 - Markdown rendering (GFM subset).
 - File uploads (images, attachments) via MinIO.
@@ -622,7 +622,7 @@ To pull communities off Discord, we need migration tools:
 - Typing indicators, presence, unread tracking.
 - PWA manifest + service worker for installability.
 
-### Phase 2 — Voice, Forums & Moderation (Weeks 11–16)
+### Phase 2 — Voice, Forums & Moderation (v0.3.0)
 - LiveKit integration: voice channels, join/leave, mute/deafen.
 - Screensharing.
 - Video chat.
@@ -632,7 +632,7 @@ To pull communities off Discord, we need migration tools:
 - Push notifications (Web Push).
 - Native iOS wrapper (WKWebView + LiveKit iOS SDK) for background voice audio.
 
-### Phase 3 — Scale, Search & Bots (Weeks 17–22)
+### Phase 3 — Scale, Search & Bots (v0.4.0)
 - Performance optimization for large servers (lazy member loading, message pagination, connection sharding).
 - Full-text search with PostgreSQL tsvector and operators (`from:`, `in:`, `has:`, `before:`, `after:`).
 - Bot API + webhook system.
@@ -641,7 +641,7 @@ To pull communities off Discord, we need migration tools:
 - Docker Compose hardening for self-hosting.
 - Documentation: self-hosting guide, API docs, bot development guide.
 
-### Phase 4 — Concord Forums & Cloud (Weeks 23–28)
+### Phase 4 — Concord Forums & Cloud (v0.5.0)
 - Concord Forums frontend (`apps/forums`): Reddit-style feed, community pages, post pages with nested comments.
 - Concord Cloud: multi-tenant hosted platform, free forum tier (no image hosting — external links only), paid managed chat.
 - Syndication API: self-hosted instances push public forum metadata to Cloud index. Metadata + links only, admin-controlled.
@@ -649,7 +649,7 @@ To pull communities off Discord, we need migration tools:
 - SEO optimization: server-side rendering for public forum pages, Open Graph meta tags, structured data.
 - RSS/Atom feeds per forum channel.
 
-### Phase 5 — Ecosystem (Weeks 29+)
+### Phase 5 — Ecosystem (v0.6.0)
 - Discord API compatibility shim.
 - Migration tooling.
 - E2EE for DMs (Signal protocol / MLS).

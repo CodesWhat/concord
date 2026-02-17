@@ -209,9 +209,9 @@ Self-hosted Concord instances are private by default. But communities want disco
 
 ---
 
-### Phase 5 — Ecosystem (v1.0.0)
+### Phase 5 — Ecosystem (v0.6.0)
 
-> **Goal:** Migration tooling, encryption, plugins. The full platform.
+> **Goal:** Migration tooling, encryption, plugins. The full platform. (v1.0 ships when battle-tested, not on a schedule.)
 
 | Feature | Description |
 | --- | --- |
