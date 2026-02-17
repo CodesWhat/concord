@@ -17,9 +17,9 @@ async function request<T>(
   const options: RequestInit = {
     method,
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
   };
   if (body !== undefined) {
+    options.headers = { "Content-Type": "application/json" };
     options.body = JSON.stringify(body);
   }
 

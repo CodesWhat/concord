@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTypingStore } from "../stores/typingStore";
 import { useChannelStore } from "../stores/channelStore";
 import { useServerStore } from "../stores/serverStore";
@@ -5,11 +6,15 @@ import { useAuthStore } from "../stores/authStore";
 
 export default function TypingIndicator() {
   const selectedChannelId = useChannelStore((s) => s.selectedChannelId);
-  const typingUsers = useTypingStore((s) =>
-    selectedChannelId ? s.getTypingUsers(selectedChannelId) : []
+  const channelTyping = useTypingStore((s) =>
+    selectedChannelId ? s.typing[selectedChannelId] : undefined
   );
   const members = useServerStore((s) => s.members);
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const typingUsers = useMemo(
+    () => (channelTyping ? Object.keys(channelTyping) : []),
+    [channelTyping],
+  );
 
   // Filter out self
   const otherTyping = typingUsers.filter((id) => id !== currentUserId);
