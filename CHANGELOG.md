@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-17
+
+### Added
+
+- Gateway event handlers for MESSAGE_UPDATE, MESSAGE_DELETE, PRESENCE_UPDATE, TYPING_START
+- Presence store (Zustand) tracking live user statuses with real-time gateway updates
+- Typing store with per-channel tracking and 8-second auto-expire timers
+- Message edit/delete UI: inline editing (Enter/Escape), delete confirmation, "(edited)" tag
+- Markdown rendering with react-markdown + remark-gfm (code blocks, links, lists, tables, task lists)
+- Live presence wired to MemberSidebar (overrides stale fetch data with gateway events)
+- Typing indicator bar with animated dots and natural language ("X is typing...", "X and Y are typing...")
+- Throttled typing event dispatch from MessageInput (5-second debounce)
+- POST /channels/:channelId/typing API endpoint with gateway broadcast
+- PATCH /users/@me API endpoint for profile updates (displayName, avatarUrl, status)
+- Status selector dropdown in ChannelSidebar user panel (Online, Idle, DND, Invisible)
+- Invite modal: generate links with configurable expiry, copy to clipboard
+- Join server page at /invite/:code with auth-aware accept flow
+- Server settings modal: edit name/description, delete server (owner-only), manage channels
+- Channel creation form in server settings (text/voice/announcement types)
+- Cmd+K quick switcher with fuzzy search across servers and channels
+- Keyboard navigation in quick switcher (arrow keys, Enter, Escape)
+
 ## [0.1.0] - 2026-02-17
 
 ### Added
