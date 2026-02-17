@@ -4,9 +4,11 @@ import {
   requireMember,
   requirePermission,
   requireChannelPermission,
+  getServerIdFromChannel,
 } from "../middleware/permissions.js";
 import * as channelService from "../services/channels.js";
 import { Permissions } from "@concord/shared";
+import { dispatchToChannel, GatewayEvent } from "../gateway/index.js";
 
 export default async function channelRoutes(app: FastifyInstance) {
   // POST /servers/:serverId/channels — Create channel
@@ -88,6 +90,28 @@ export default async function channelRoutes(app: FastifyInstance) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }
       return result.data;
+    },
+  );
+
+  // POST /channels/:channelId/typing — Trigger typing indicator
+  app.post<{ Params: { channelId: string } }>(
+    "/channels/:channelId/typing",
+    {
+      preHandler: [
+        requireAuth,
+        requireChannelPermission(Permissions.SEND_MESSAGES),
+      ],
+    },
+    async (request, reply) => {
+      const serverId = await getServerIdFromChannel(request.params.channelId);
+      if (!serverId) {
+        return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Channel not found", status: 404 } });
+      }
+      dispatchToChannel(serverId, GatewayEvent.TYPING_START, {
+        channelId: request.params.channelId,
+        userId: request.userId,
+      });
+      return reply.code(204).send();
     },
   );
 }
