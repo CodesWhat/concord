@@ -3,6 +3,8 @@ import { api } from "../api/client.js";
 import { useServerStore } from "../stores/serverStore";
 import { useChannelStore } from "../stores/channelStore";
 import { useAuthStore } from "../stores/authStore";
+import RoleEditor from "./RoleEditor";
+import ChannelPermissionsEditor from "./ChannelPermissionsEditor";
 
 interface ServerSettingsModalProps {
   open: boolean;
@@ -10,7 +12,7 @@ interface ServerSettingsModalProps {
 }
 
 export default function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps) {
-  const [tab, setTab] = useState<"overview" | "channels">("overview");
+  const [tab, setTab] = useState<"overview" | "channels" | "roles">("overview");
   const servers = useServerStore((s) => s.servers);
   const selectedServerId = useServerStore((s) => s.selectedServerId);
   const fetchServers = useServerStore((s) => s.fetchServers);
@@ -29,6 +31,9 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
   // Channel creation
   const [newChannelName, setNewChannelName] = useState("");
   const [newChannelType, setNewChannelType] = useState<"text" | "voice" | "announcement">("text");
+
+  // Channel permissions editor
+  const [permEditorChannel, setPermEditorChannel] = useState<{ id: string; permissionOverrides: Record<string, { allow: number; deny: number }> } | null>(null);
 
   useEffect(() => {
     if (server) {
@@ -104,13 +109,19 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
           >
             Channels
           </button>
+          <button
+            onClick={() => setTab("roles")}
+            className={`rounded-md px-2 py-1.5 text-left text-sm ${tab === "roles" ? "bg-bg-elevated text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
+          >
+            Roles
+          </button>
         </div>
 
         {/* Content */}
         <div className="flex flex-1 flex-col p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-text-primary">
-              {tab === "overview" ? "Server Overview" : "Channels"}
+              {tab === "overview" ? "Server Overview" : tab === "channels" ? "Channels" : "Roles"}
             </h2>
             <button onClick={onClose} className="text-text-muted hover:text-text-secondary text-xl">&times;</button>
           </div>
@@ -186,13 +197,22 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                       <span className="text-text-muted">{ch.type === "voice" ? "\uD83D\uDD0A" : "#"}</span>
                       {ch.name}
                     </div>
-                    <button
-                      onClick={() => handleDeleteChannel(ch.id)}
-                      className="text-text-muted hover:text-red-400 text-xs opacity-0 group-hover:opacity-100"
-                      title="Delete channel"
-                    >
-                      &#10005;
-                    </button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                      <button
+                        onClick={() => setPermEditorChannel({ id: ch.id, permissionOverrides: (ch as unknown as { permissionOverrides: Record<string, { allow: number; deny: number }> }).permissionOverrides ?? {} })}
+                        className="text-text-muted hover:text-text-primary text-xs"
+                        title="Permissions"
+                      >
+                        &#x1F512;
+                      </button>
+                      <button
+                        onClick={() => handleDeleteChannel(ch.id)}
+                        className="text-text-muted hover:text-red-400 text-xs"
+                        title="Delete channel"
+                      >
+                        &#10005;
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -233,8 +253,21 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
               </div>
             </div>
           )}
+
+          {tab === "roles" && (
+            <RoleEditor serverId={selectedServerId} />
+          )}
         </div>
       </div>
+
+      {permEditorChannel && (
+        <ChannelPermissionsEditor
+          channelId={permEditorChannel.id}
+          serverId={selectedServerId}
+          overrides={permEditorChannel.permissionOverrides}
+          onClose={() => setPermEditorChannel(null)}
+        />
+      )}
     </div>
   );
 }
