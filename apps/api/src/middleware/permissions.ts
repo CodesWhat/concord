@@ -1,8 +1,8 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db.js";
-import { serverMembers, memberRoles, roles, servers, channels } from "../models/schema.js";
-import { hasPermission, Permissions } from "@concord/shared";
+import { serverMembers, memberRoles, roles, servers, channels, categories } from "../models/schema.js";
+import { hasPermission, Permissions, resolveChannelPermissions, type PermissionOverrides } from "@concord/shared";
 import { auth } from "../services/auth.js";
 
 // Extend Fastify request to carry user info
@@ -133,11 +133,24 @@ export function requireChannelPermission(permission: number) {
       return;
     }
 
-    const serverId = await getServerIdFromChannel(channelId);
-    if (!serverId) {
+    // Fetch channel with overrides and categoryId
+    const channelResult = await db
+      .select({
+        serverId: channels.serverId,
+        categoryId: channels.categoryId,
+        permissionOverrides: channels.permissionOverrides,
+      })
+      .from(channels)
+      .where(eq(channels.id, channelId))
+      .limit(1);
+
+    if (channelResult.length === 0) {
       reply.code(404).send({ error: { code: "NOT_FOUND", message: "Channel not found", status: 404 } });
       return;
     }
+
+    const channel = channelResult[0]!;
+    const serverId = channel.serverId;
 
     // Check membership
     const member = await db
@@ -156,10 +169,54 @@ export function requireChannelPermission(permission: number) {
       return;
     }
 
-    const perms = await resolvePermissions(request.userId, serverId);
-    request.memberPermissions = perms;
+    // Get base server-level permissions
+    const basePerms = await resolvePermissions(request.userId, serverId);
 
-    if (!hasPermission(perms, permission)) {
+    // If admin, skip override resolution
+    if (hasPermission(basePerms, Permissions.ADMINISTRATOR)) {
+      request.memberPermissions = basePerms;
+      if (!hasPermission(basePerms, permission)) {
+        reply.code(403).send({ error: { code: "FORBIDDEN", message: "Missing required permission", status: 403 } });
+        return;
+      }
+      return;
+    }
+
+    // Get member's role IDs for override resolution
+    const userRoleRows = await db
+      .select({ roleId: memberRoles.roleId })
+      .from(memberRoles)
+      .where(and(eq(memberRoles.userId, request.userId), eq(memberRoles.serverId, serverId)));
+
+    const memberRoleIds = userRoleRows.map((r) => r.roleId);
+
+    // Fetch category overrides if channel belongs to a category
+    let categoryOverrides: PermissionOverrides | null = null;
+    if (channel.categoryId) {
+      const catResult = await db
+        .select({ permissionOverrides: categories.permissionOverrides })
+        .from(categories)
+        .where(eq(categories.id, channel.categoryId))
+        .limit(1);
+
+      if (catResult.length > 0) {
+        categoryOverrides = catResult[0]!.permissionOverrides as PermissionOverrides;
+      }
+    }
+
+    const channelOverrides = channel.permissionOverrides as PermissionOverrides;
+
+    // Resolve effective permissions with overrides
+    const effectivePerms = resolveChannelPermissions(
+      basePerms,
+      memberRoleIds,
+      categoryOverrides,
+      channelOverrides,
+    );
+
+    request.memberPermissions = effectivePerms;
+
+    if (!hasPermission(effectivePerms, permission)) {
       reply.code(403).send({ error: { code: "FORBIDDEN", message: "Missing required permission", status: 403 } });
       return;
     }

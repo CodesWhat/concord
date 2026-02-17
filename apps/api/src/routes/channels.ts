@@ -114,4 +114,52 @@ export default async function channelRoutes(app: FastifyInstance) {
       return reply.code(204).send();
     },
   );
+
+  // PUT /channels/:channelId/permissions/:roleId — Set permission override
+  app.put<{
+    Params: { channelId: string; roleId: string };
+    Body: { allow: number; deny: number };
+  }>(
+    "/channels/:channelId/permissions/:roleId",
+    {
+      preHandler: [
+        requireAuth,
+        requireChannelPermission(Permissions.MANAGE_ROLES),
+      ],
+    },
+    async (request, reply) => {
+      const { channelId, roleId } = request.params;
+      const { allow, deny } = request.body;
+
+      if (allow === undefined || deny === undefined) {
+        return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "allow and deny are required", status: 400 } });
+      }
+
+      const result = await channelService.setChannelPermissionOverride(channelId, roleId, { allow, deny });
+      if (result.error) {
+        return reply.code(result.error.statusCode).send({ error: result.error });
+      }
+      return result.data;
+    },
+  );
+
+  // DELETE /channels/:channelId/permissions/:roleId — Remove permission override
+  app.delete<{ Params: { channelId: string; roleId: string } }>(
+    "/channels/:channelId/permissions/:roleId",
+    {
+      preHandler: [
+        requireAuth,
+        requireChannelPermission(Permissions.MANAGE_ROLES),
+      ],
+    },
+    async (request, reply) => {
+      const { channelId, roleId } = request.params;
+
+      const result = await channelService.removeChannelPermissionOverride(channelId, roleId);
+      if (result.error) {
+        return reply.code(result.error.statusCode).send({ error: result.error });
+      }
+      return result.data;
+    },
+  );
 }

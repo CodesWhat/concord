@@ -127,3 +127,64 @@ export async function deleteChannel(
 
   return { data: { deleted: true }, error: null };
 }
+
+export async function setChannelPermissionOverride(
+  channelId: string,
+  roleId: string,
+  override: { allow: number; deny: number },
+): Promise<ServiceResult<typeof channels.$inferSelect>> {
+  const existing = await db
+    .select({ permissionOverrides: channels.permissionOverrides })
+    .from(channels)
+    .where(eq(channels.id, channelId))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return { data: null, error: { code: "NOT_FOUND", message: "Channel not found", statusCode: 404 } };
+  }
+
+  const overrides = (existing[0]!.permissionOverrides as Record<string, { allow: number; deny: number }>) ?? {};
+  overrides[roleId] = override;
+
+  const result = await db
+    .update(channels)
+    .set({ permissionOverrides: overrides })
+    .where(eq(channels.id, channelId))
+    .returning();
+
+  if (result.length === 0) {
+    return { data: null, error: { code: "NOT_FOUND", message: "Channel not found", statusCode: 404 } };
+  }
+
+  return { data: result[0]!, error: null };
+}
+
+export async function removeChannelPermissionOverride(
+  channelId: string,
+  roleId: string,
+): Promise<ServiceResult<typeof channels.$inferSelect>> {
+  const existing = await db
+    .select({ permissionOverrides: channels.permissionOverrides })
+    .from(channels)
+    .where(eq(channels.id, channelId))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return { data: null, error: { code: "NOT_FOUND", message: "Channel not found", statusCode: 404 } };
+  }
+
+  const overrides = (existing[0]!.permissionOverrides as Record<string, { allow: number; deny: number }>) ?? {};
+  delete overrides[roleId];
+
+  const result = await db
+    .update(channels)
+    .set({ permissionOverrides: overrides })
+    .where(eq(channels.id, channelId))
+    .returning();
+
+  if (result.length === 0) {
+    return { data: null, error: { code: "NOT_FOUND", message: "Channel not found", statusCode: 404 } };
+  }
+
+  return { data: result[0]!, error: null };
+}
