@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useServerStore } from "../stores/serverStore";
 import { useChannelStore } from "../stores/channelStore";
 import { useMessageStore } from "../stores/messageStore";
+import EmptyState from "./EmptyState.js";
 
 interface SearchResult {
   type: "server" | "channel";
@@ -122,11 +123,11 @@ export default function QuickSwitcher() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/60"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/60 animate-fade-in"
       onClick={() => setOpen(false)}
     >
       <div
-        className="w-full max-w-lg rounded-xl bg-bg-sidebar shadow-2xl overflow-hidden"
+        className="w-full max-w-lg rounded-xl bg-bg-sidebar shadow-2xl overflow-hidden animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-4 py-3">
@@ -145,15 +146,17 @@ export default function QuickSwitcher() {
 
         <div className="border-t border-border max-h-80 overflow-y-auto">
           {results.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-text-muted">
-              No results found
-            </div>
+            <EmptyState
+              icon={<SearchOffIcon />}
+              heading="No results found"
+              subtext="Try a different search term"
+            />
           )}
           {results.slice(0, 20).map((result, i) => (
             <button
               key={`${result.type}-${result.id}`}
               onClick={() => handleSelect(result)}
-              className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+              className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 outline-none ${
                 i === clampedIndex
                   ? "bg-primary/20 text-text-primary"
                   : "text-text-secondary hover:bg-bg-content"
@@ -207,5 +210,14 @@ export default function QuickSwitcher() {
         </div>
       </div>
     </div>
+  );
+}
+
+function SearchOffIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+      <line x1="8" y1="11" x2="14" y2="11" />
+    </svg>
   );
 }

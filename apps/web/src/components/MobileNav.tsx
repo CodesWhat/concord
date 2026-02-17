@@ -30,13 +30,12 @@ function TabButton({
   badge?: number;
 }) {
   return (
-    <button onClick={onClick} className="relative flex flex-col items-center gap-0.5 px-3 py-1">
-      <span style={{ color: active ? "var(--color-primary)" : "var(--color-text-muted)" }}>
+    <button onClick={onClick} className="relative flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:ring-2 focus-visible:ring-primary/50 outline-none">
+      <span className={active ? "text-primary" : "text-text-muted"}>
         {icon}
       </span>
       <span
-        className="text-[10px] font-medium"
-        style={{ color: active ? "var(--color-primary)" : "var(--color-text-muted)" }}
+        className={`text-[10px] font-medium ${active ? "text-primary" : "text-text-muted"}`}
       >
         {label}
       </span>

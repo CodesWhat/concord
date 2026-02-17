@@ -70,11 +70,11 @@ export default function InviteModal({ open, onClose }: InviteModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in"
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-bg-sidebar p-6 shadow-2xl"
+        className="w-full max-w-md rounded-xl bg-bg-sidebar p-6 shadow-2xl animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-1 text-xl font-bold text-text-primary">
@@ -111,7 +111,13 @@ export default function InviteModal({ open, onClose }: InviteModalProps) {
           <select
             value={expiresIn}
             onChange={(e) => setExpiresIn(Number(e.target.value))}
-            className="w-full rounded-lg bg-bg-deepest px-3 py-2 text-sm text-text-primary outline-none"
+            className="w-full appearance-none cursor-pointer rounded-lg bg-bg-deepest px-3 py-2 pr-8 text-sm text-text-primary outline-none"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 8px center",
+              backgroundSize: "16px",
+            }}
           >
             {EXPIRY_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>

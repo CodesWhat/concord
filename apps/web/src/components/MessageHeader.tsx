@@ -53,11 +53,11 @@ function HeaderIconButton({
     <button
       title={title}
       onClick={onClick}
-      className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-      style={{
-        color: active ? "var(--color-text-primary)" : "var(--color-text-muted)",
-        backgroundColor: active ? "var(--color-bg-elevated)" : "transparent",
-      }}
+      className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 outline-none ${
+        active
+          ? "text-text-primary bg-bg-elevated"
+          : "text-text-muted hover:text-text-secondary hover:bg-bg-elevated"
+      }`}
     >
       {children}
     </button>

@@ -12,6 +12,10 @@ import {
 } from "./ChannelSidebarIcons";
 import InviteModal from "./InviteModal";
 import ServerSettingsModal from "./ServerSettingsModal";
+import { useUnreadStore } from "../stores/unreadStore.js";
+import { Badge } from "./ui/Badge.js";
+import EmptyState from "./EmptyState.js";
+import { getAvatarColor } from "../utils/colors.js";
 
 interface ChannelItemProps {
   channel: { id: string; name: string; type: ChannelType };
@@ -20,19 +24,29 @@ interface ChannelItemProps {
 }
 
 function ChannelItem({ channel, isActive, onClick }: ChannelItemProps) {
+  const unread = useUnreadStore((s) => s.getUnreadForChannel(channel.id));
+  const hasUnread = unread.unreadCount > 0;
+
   return (
     <button
       onClick={onClick}
-      className="group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors"
-      style={{
-        backgroundColor: isActive ? "var(--color-bg-elevated)" : "transparent",
-        color: isActive ? "var(--color-text-primary)" : "var(--color-text-muted)",
-      }}
+      className={`group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 outline-none ${
+        isActive
+          ? "bg-bg-elevated text-text-primary"
+          : "text-text-muted hover:text-text-secondary hover:bg-bg-elevated/50"
+      }`}
     >
       {channel.type === "voice" ? <SpeakerIcon /> : <HashIcon />}
-      <span className="truncate group-hover:text-text-secondary">
+      <span
+        className={`truncate group-hover:text-text-secondary ${hasUnread && !isActive ? "font-semibold text-text-primary" : ""}`}
+      >
         {channel.name}
       </span>
+      {unread.mentionCount > 0 && (
+        <span className="ml-auto">
+          <Badge count={unread.mentionCount} />
+        </span>
+      )}
     </button>
   );
 }
@@ -54,23 +68,25 @@ function CategorySection({
     <div className="mb-1">
       <button
         onClick={() => setCollapsed((c) => !c)}
-        className="flex w-full items-center gap-0.5 px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted hover:text-text-secondary"
+        className="flex w-full items-center gap-0.5 px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted hover:text-text-secondary focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
       >
         <ChevronIcon collapsed={collapsed} />
         {categoryName}
       </button>
-      {!collapsed && (
-        <div className="flex flex-col gap-0.5 px-0.5">
-          {channels.map((ch) => (
-            <ChannelItem
-              key={ch.id}
-              channel={ch}
-              isActive={ch.id === activeChannelId}
-              onClick={() => onSelectChannel(ch.id)}
-            />
-          ))}
+      <div className={`grid ${collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]"} transition-[grid-template-rows] duration-200`}>
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-0.5 px-0.5">
+            {channels.map((ch) => (
+              <ChannelItem
+                key={ch.id}
+                channel={ch}
+                isActive={ch.id === activeChannelId}
+                onClick={() => onSelectChannel(ch.id)}
+              />
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -79,7 +95,7 @@ function IconButton({ children, title }: { children: React.ReactNode; title: str
   return (
     <button
       title={title}
-      className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-bg-elevated hover:text-text-secondary"
+      className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-bg-elevated hover:text-text-secondary focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
     >
       {children}
     </button>
@@ -125,7 +141,7 @@ function StatusSelector({ userId }: { userId: string }) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-[3px] border-bg-deepest"
+        className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-[3px] border-bg-deepest focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
         style={{ backgroundColor: current.color }}
         title={`Status: ${current.label}`}
       />
@@ -135,7 +151,7 @@ function StatusSelector({ userId }: { userId: string }) {
             <button
               key={opt.value}
               onClick={() => handleSelect(opt.value)}
-              className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-text-secondary hover:bg-bg-content"
+              className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-text-secondary hover:bg-bg-content focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
             >
               <span
                 className="h-2.5 w-2.5 rounded-full"
@@ -193,7 +209,7 @@ export default function ChannelSidebar({ onBack }: { onBack?: () => void }) {
           <button
             onClick={() => setInviteOpen(true)}
             title="Invite People"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-bg-elevated hover:text-text-secondary"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted hover:bg-bg-elevated hover:text-text-secondary focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -203,14 +219,18 @@ export default function ChannelSidebar({ onBack }: { onBack?: () => void }) {
             </svg>
           </button>
         )}
-        <button onClick={() => setSettingsOpen(true)} className="text-text-muted hover:text-text-secondary">
+        <button onClick={() => setSettingsOpen(true)} className="text-text-muted hover:text-text-secondary focus-visible:ring-2 focus-visible:ring-primary/50 outline-none">
           <ChevronDownIcon />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin">
         {channels.length === 0 && (
-          <p className="px-2 py-4 text-sm text-text-muted">No channels</p>
+          <EmptyState
+            icon={<HashIcon />}
+            heading="No channels yet"
+            subtext="Create a channel to get started"
+          />
         )}
         {uncategorized.length > 0 && (
           <CategorySection
@@ -233,7 +253,10 @@ export default function ChannelSidebar({ onBack }: { onBack?: () => void }) {
 
       <div className="flex items-center gap-2 border-t border-border bg-bg-deepest px-2 py-2">
         <div className="relative">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold"
+            style={{ backgroundColor: getAvatarColor(user?.id ?? "").bg, color: getAvatarColor(user?.id ?? "").text }}
+          >
             {user?.name?.charAt(0) ?? "?"}
           </div>
           {user?.id && <StatusSelector userId={user.id} />}

@@ -85,8 +85,8 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div className="flex h-[480px] w-full max-w-xl overflow-hidden rounded-xl bg-bg-sidebar shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in" onClick={onClose}>
+      <div className="flex h-[480px] w-full max-w-xl overflow-hidden rounded-xl bg-bg-sidebar shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
         {/* Sidebar */}
         <div className="flex w-44 flex-col bg-bg-deepest p-3">
           <h3 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
@@ -211,7 +211,13 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                   <select
                     value={newChannelType}
                     onChange={(e) => setNewChannelType(e.target.value as "text" | "voice" | "announcement")}
-                    className="rounded-lg bg-bg-deepest px-2 py-2 text-sm text-text-primary outline-none"
+                    className="appearance-none cursor-pointer rounded-lg bg-bg-deepest px-2 py-2 pr-8 text-sm text-text-primary outline-none"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 6px center",
+                      backgroundSize: "16px",
+                    }}
                   >
                     <option value="text">Text</option>
                     <option value="voice">Voice</option>

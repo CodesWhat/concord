@@ -2,6 +2,7 @@ import { useServerStore } from "../stores/serverStore";
 import { usePresenceStore } from "../stores/presenceStore";
 import type { UserStatus } from "@concord/shared";
 import StatusDot from "./StatusDot";
+import { getAvatarColor } from "../utils/colors.js";
 
 interface MemberDisplay {
   userId: string;
@@ -12,11 +13,11 @@ interface MemberDisplay {
 
 function MemberItem({ member }: { member: MemberDisplay }) {
   return (
-    <div className="group flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-bg-elevated">
+    <div className="group flex items-center gap-3 rounded-md border-l-2 border-transparent px-2 py-1.5 transition-colors duration-150 hover:border-primary hover:bg-bg-elevated">
       <div className="relative shrink-0">
         <div
-          className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white"
-          style={{ backgroundColor: `${member.roleColor ?? "#71717A"}33` }}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
+          style={{ backgroundColor: getAvatarColor(member.userId).bg, color: getAvatarColor(member.userId).text }}
         >
           {member.displayName.charAt(0)}
         </div>
@@ -48,7 +49,7 @@ function MemberGroup({
 }) {
   return (
     <div className="mb-4">
-      <h3 className="px-2 pb-1 text-xs font-semibold uppercase tracking-wider text-text-muted">
+      <h3 className="px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted">
         {label} &mdash; {count}
       </h3>
       <div className="flex flex-col gap-0.5">
