@@ -1,5 +1,6 @@
 import MessageHeader from "./MessageHeader";
 import MessageList from "./MessageList";
+import TypingIndicator from "./TypingIndicator";
 import MessageInput from "./MessageInput";
 import { useChannelStore } from "../stores/channelStore";
 
@@ -27,6 +28,7 @@ export default function MessageArea({
         membersVisible={membersVisible}
       />
       <MessageList />
+      <TypingIndicator />
       <MessageInput channelName={channelName} />
     </main>
   );

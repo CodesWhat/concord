@@ -1,4 +1,5 @@
 import { useServerStore } from "../stores/serverStore";
+import { usePresenceStore } from "../stores/presenceStore";
 import type { UserStatus } from "@concord/shared";
 import StatusDot from "./StatusDot";
 
@@ -61,11 +62,12 @@ function MemberGroup({
 
 export default function MemberSidebar() {
   const members = useServerStore((s) => s.members);
+  const presenceStatuses = usePresenceStore((s) => s.statuses);
 
   const displayMembers: MemberDisplay[] = members.map((m) => ({
     userId: m.userId,
     displayName: m.user.displayName,
-    status: m.user.status as UserStatus,
+    status: (presenceStatuses[m.userId] ?? m.user.status) as UserStatus,
     roleColor: m.roles[0]?.color ?? null,
   }));
 

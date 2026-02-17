@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMessageStore } from "../stores/messageStore.js";
 import { useChannelStore } from "../stores/channelStore.js";
+import { api } from "../api/client.js";
 
 export default function MessageInput({ channelName }: { channelName: string }) {
   const [value, setValue] = useState("");
@@ -9,6 +10,16 @@ export default function MessageInput({ channelName }: { channelName: string }) {
   const editingMessageId = useMessageStore((s) => s.editingMessageId);
   const setEditingMessage = useMessageStore((s) => s.setEditingMessage);
   const selectedChannelId = useChannelStore((s) => s.selectedChannelId);
+  const lastTypingSent = useRef(0);
+
+  const handleTyping = () => {
+    if (!selectedChannelId) return;
+    const now = Date.now();
+    if (now - lastTypingSent.current > 5000) {
+      lastTypingSent.current = now;
+      api.post(`/api/v1/channels/${selectedChannelId}/typing`).catch(() => {});
+    }
+  };
 
   // Cancel edit mode on Escape when the main input is focused
   useEffect(() => {
@@ -61,7 +72,10 @@ export default function MessageInput({ channelName }: { channelName: string }) {
         <input
           type="text"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            handleTyping();
+          }}
           onKeyDown={handleKeyDown}
           placeholder={`Message #${channelName}`}
           disabled={!selectedChannelId || isSending}
