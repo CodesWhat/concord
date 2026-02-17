@@ -11,6 +11,8 @@ import inviteRoutes from "./routes/invites.js";
 import userRoutes from "./routes/users.js";
 import threadRoutes from "./routes/threads.js";
 import readStateRoutes from "./routes/readState.js";
+import notificationRoutes from "./routes/notifications.js";
+import roleRoutes from "./routes/roles.js";
 import { initGateway } from "./gateway/index.js";
 import { initBucket } from "./services/s3.js";
 
@@ -66,6 +68,7 @@ server.route({
 
 // Register REST API routes
 await server.register(serverRoutes, { prefix: "/api/v1/servers" });
+await server.register(roleRoutes, { prefix: "/api/v1/servers" });
 await server.register(channelRoutes, { prefix: "/api/v1" });
 await server.register(messageRoutes, { prefix: "/api/v1" });
 await server.register(attachmentRoutes, { prefix: "/api/v1" });
@@ -73,6 +76,7 @@ await server.register(inviteRoutes, { prefix: "/api/v1" });
 await server.register(userRoutes, { prefix: "/api/v1/users" });
 await server.register(threadRoutes, { prefix: "/api/v1" });
 await server.register(readStateRoutes, { prefix: "/api/v1" });
+await server.register(notificationRoutes, { prefix: "/api/v1" });
 
 server.get("/", async () => {
   return { status: "ok", name: "concord-api" };
