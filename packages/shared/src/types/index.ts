@@ -85,6 +85,22 @@ export interface AppError {
   statusCode: number;
 }
 
+export interface Role {
+  id: string;
+  serverId: string;
+  name: string;
+  color: string | null;
+  position: number;
+  permissions: number;
+  mentionable: boolean;
+  hoisted: boolean;
+}
+
+export interface PermissionOverride {
+  allow: number;
+  deny: number;
+}
+
 export type ServiceResult<T> =
   | { data: T; error: null }
   | { data: null; error: AppError };
