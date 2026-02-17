@@ -1,6 +1,6 @@
 # Concord — Open-Source Community Platform
 
-## Project Spec v0.5
+## Project Spec v0.6
 
 **Name:** Concord
 **Logo:** Concord grape (stylized, modern)
@@ -15,6 +15,35 @@
 Concord is a self-hostable, open-source community platform built as a direct replacement for Discord. It supports all community sizes — from small friend groups to servers with tens of thousands of active users — without compromising on UX, moderation, or real-time features.
 
 The name says it all: Discord means conflict, Concord means harmony. Communities deserve infrastructure they control, with onboarding simple enough that non-technical users never notice it isn't Discord.
+
+### 1.1 Dual-Product Architecture
+
+Concord is two products sharing one backend:
+
+1. **Concord Chat** — The Discord replacement. Real-time text, voice, video, screensharing, roles, moderation, bots. The `apps/web` frontend.
+2. **Concord Forums** — The Reddit replacement. Forum-first frontend over the same API. Communities are servers, forum channels are post feeds, public by default, indexable by search engines. The `apps/forums` frontend (Phase 4).
+
+Same Fastify API, same Postgres database, same auth, same permission system. Two UIs into the same community data. Server admins choose what they need — chat only, forums only, or both.
+
+### 1.2 Concord Cloud
+
+Self-hosted instances are private by default. **Concord Cloud** is the hosted public layer:
+
+- **For casual users:** Sign up, create a community, start posting. No servers to manage. This is the Reddit experience — free, public, discoverable.
+- **For self-hosters:** Run your own Concord instance with full control. Optionally syndicate public forum content to the Cloud index for discoverability.
+
+**Free tier cost model:** No image hosting on the free tier. Users link to external image hosts (Imgur, etc.) to keep storage costs near zero. Text posts, markdown, upvotes, comments, tags — all free. Paid tiers add Cloudflare R2 media storage, voice/video (LiveKit), custom domains.
+
+**Syndication (not federation):**
+- One-directional: self-hosted → Cloud index
+- Admin-controlled: toggle on/off in server settings
+- Metadata only: Cloud stores titles, excerpts, links — not full content
+- Cloud links back to the source instance for reading
+- Revocable: admin turns it off, content disappears from Cloud
+
+This is explicitly not ActivityPub federation. No cross-instance messaging, no distributed identity, no N×M compatibility surface. Just a directory listing with backlinks.
+
+**Migration path:** Create on Cloud → grow community → self-host for control → keep syndicating for discoverability.
 
 ---
 
@@ -92,10 +121,11 @@ These are non-negotiable for v1.0:
 - Shared language with the frontend reduces context switching.
 - If hot paths become bottlenecks at scale, they can be extracted into Rust/Go microservices later. Premature optimization of language choice is how Matrix ended up with Synapse → Dendrite → Synapse Pro and shipped nothing.
 
-**React + Vite for the PWA (NOT Next.js):**
-- A chat app is a single-page application, not a content site. SSR adds complexity with zero benefit here — there's nothing to SEO-index behind an auth wall.
+**React + Vite for the Chat PWA (NOT Next.js):**
+- The chat app (`apps/web`) is a single-page application, not a content site. SSR adds complexity with zero benefit here — there's nothing to SEO-index behind an auth wall.
 - Vite gives fast HMR, simple config, and clean PWA support via `vite-plugin-pwa`.
 - React because it's what you know, the ecosystem is massive, and hiring/contributors are plentiful.
+- **Note:** The Forums frontend (`apps/forums`, Phase 4) WILL need SSR for public pages — SEO and social sharing require server-rendered HTML. This will likely use React + a lightweight SSR solution (React Router SSR, or Vite SSR).
 
 **PostgreSQL:**
 - Battle-tested relational store for messages, users, servers, channels, roles, permissions.
@@ -602,16 +632,24 @@ To pull communities off Discord, we need migration tools:
 - Push notifications (Web Push).
 - Native iOS wrapper (WKWebView + LiveKit iOS SDK) for background voice audio.
 
-### Phase 3 — Polish & Scale (Weeks 17–22)
+### Phase 3 — Scale, Search & Bots (Weeks 17–22)
 - Performance optimization for large servers (lazy member loading, message pagination, connection sharding).
+- Full-text search with PostgreSQL tsvector and operators (`from:`, `in:`, `has:`, `before:`, `after:`).
 - Bot API + webhook system.
 - Custom emoji.
 - User settings and notification preferences.
 - Docker Compose hardening for self-hosting.
-- Railway deployment config (Dockerfiles, railway.toml, managed Postgres/Redis).
 - Documentation: self-hosting guide, API docs, bot development guide.
 
-### Phase 4 — Ecosystem (Weeks 23+)
+### Phase 4 — Concord Forums & Cloud (Weeks 23–28)
+- Concord Forums frontend (`apps/forums`): Reddit-style feed, community pages, post pages with nested comments.
+- Concord Cloud: multi-tenant hosted platform, free forum tier (no image hosting — external links only), paid managed chat.
+- Syndication API: self-hosted instances push public forum metadata to Cloud index. Metadata + links only, admin-controlled.
+- Server discovery: browse and search public communities. Categories, trending, new.
+- SEO optimization: server-side rendering for public forum pages, Open Graph meta tags, structured data.
+- RSS/Atom feeds per forum channel.
+
+### Phase 5 — Ecosystem (Weeks 29+)
 - Discord API compatibility shim.
 - Migration tooling.
 - E2EE for DMs (Signal protocol / MLS).
@@ -671,7 +709,10 @@ If federation becomes necessary in the future, it should be built as a plugin on
 **Decision: GitLab model — open core, paid hosted tier.**
 
 - Self-hosted Concord is fully featured, no artificial limits, no phoning home. Period.
-- Revenue comes from an optional managed hosting tier (concord.cloud or similar, Railway-based) where we run the infrastructure and charge monthly per-server.
+- Revenue comes from **Concord Cloud**, which serves two audiences:
+  1. **Managed chat hosting** — Run a full Concord Chat instance without ops. Monthly per-server pricing.
+  2. **Public forum platform** — The Reddit replacement. Free community creation with text-only content (no image hosting — users link to Imgur, etc.). Paid tiers add media storage (R2), voice/video (LiveKit), custom domains.
+- Free forum tier keeps costs near zero: no media storage, no compute-heavy features. Revenue triggers when communities upgrade for images, voice, or managed chat.
 - GitHub Sponsors / Open Collective for individual donations.
 - No CLA. The AGPL license means anyone running a modified version as a service must share their changes. This is the monetization protection — not legal ownership of contributions.
 - Support contracts for large deployments can come later once there's traction.
@@ -705,13 +746,14 @@ This is the model that built GitLab, Plausible, and Umami. It works.
 
 ### 16.7 Knowledge Persistence Model
 
-**Decision: Phase 1 ships enhanced pinned messages. Phase 4 explores wiki pages.**
+**Decision: Forum channels (Phase 2) + wiki pages (Phase 5).**
 
-The community demand is real (155+ upvotes), but building a full forum/wiki system alongside a chat platform is scope creep. Incremental approach:
+The community demand is real (155+ upvotes). Forum channels are the primary answer — threaded posts with titles, markdown bodies, upvotes, nested comments, tags. Public readability toggle makes them indexable. This is the foundation for both the Reddit replacement and knowledge persistence.
 
 - **Phase 1:** Pinned messages get a dedicated "Pins" sidebar panel per channel. Pins can be categorized with tags. Search works across pins.
-- **Phase 3:** "Announcements" channel type that supports longer-form posts with comments (not full threading — just top-level posts with replies). Think Discord's Forum channels.
-- **Phase 4 / Backlog:** Dedicated wiki/docs pages per server. Markdown-based, versioned, with role-based edit permissions. This is a substantial feature and should be validated with real users before building.
+- **Phase 2:** Forum channels ship as a new channel type. Threaded posts, upvote/downvote, sort by hot/new/top, nested comment trees, admin-defined tags, public readability toggle.
+- **Phase 4:** Concord Forums frontend gives forum channels a dedicated Reddit-style UI with feeds, discovery, SEO pages. Concord Cloud makes them publicly accessible.
+- **Phase 5:** Dedicated wiki/docs pages per server. Markdown-based, versioned, with role-based edit permissions.
 
 ---
 
@@ -724,7 +766,7 @@ This project will be built primarily by AI coding agents (Claude Code and simila
 ```
 concord/
 ├── apps/
-│   ├── web/                 # React + Vite PWA
+│   ├── web/                 # React + Vite PWA (Concord Chat — Discord replacement)
 │   │   ├── src/
 │   │   │   ├── components/  # UI components (one file per component)
 │   │   │   ├── hooks/       # Custom React hooks
@@ -733,7 +775,13 @@ concord/
 │   │   │   ├── pages/       # Top-level route pages
 │   │   │   └── utils/       # Pure helper functions
 │   │   └── public/          # PWA manifest, icons
-│   └── api/                 # Fastify backend
+│   ├── forums/              # React + SSR (Concord Forums — Reddit replacement, Phase 4)
+│   │   ├── src/
+│   │   │   ├── components/  # Forum-specific UI (feed, post, comments)
+│   │   │   ├── pages/       # /s/:server, /s/:server/:forum/:post
+│   │   │   └── api/         # Shared API client (from packages/shared)
+│   │   └── public/
+│   └── api/                 # Fastify backend (serves both Chat and Forums)
 │       ├── src/
 │       │   ├── routes/      # One file per resource (users, channels, messages, etc.)
 │       │   ├── gateway/     # WebSocket gateway logic
@@ -868,4 +916,4 @@ Items that surfaced from community research but are not in scope for the initial
 
 ---
 
-*This is a living document. Version 0.5 — February 2026.*
+*This is a living document. Version 0.6 — February 2026.*

@@ -49,6 +49,59 @@ In Forums, you see a Reddit layout: feed of posts from your subscribed communiti
 
 Same data. Same moderation. Same accounts. Two experiences.
 
+### Concord Cloud — The Public Layer
+
+Self-hosted Concord instances are private by default. But communities want discoverability, and casual users want a Reddit-like experience without running infrastructure.
+
+**Concord Cloud** is the hosted, multi-tenant layer that makes this possible:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    Concord Cloud                          │
+│                (Multi-tenant hosted)                      │
+│                                                          │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌───────────┐  │
+│  │Community │  │Community │  │Community │  │ Syndicated │  │
+│  │    A     │  │    B     │  │    C     │  │  from      │  │
+│  │(native)  │  │(native)  │  │(native)  │  │ self-host  │  │
+│  └─────────┘  └─────────┘  └─────────┘  └───────────┘  │
+│                                                          │
+│  Public feed  ·  Discovery  ·  Search  ·  SEO pages     │
+└──────────────────────────────────────────────────────────┘
+          ▲                                    ▲
+          │                                    │
+     Users create                    Opt-in syndication
+     communities                     (admin-controlled)
+     directly                              │
+                                           │
+                              ┌─────────────────────────┐
+                              │  Self-Hosted Instances   │
+                              │  (full Concord stack)    │
+                              │                          │
+                              │  Public forum content    │
+                              │  pushed to Cloud index   │
+                              │  on admin opt-in         │
+                              └─────────────────────────┘
+```
+
+**Two paths to a community:**
+
+1. **Create on Cloud** — Anyone signs up, creates a community (a "grape"), starts posting. Free tier. No self-hosting needed. This is the Reddit experience. Communities that outgrow the free tier can self-host and keep syndicating.
+
+2. **Self-host + syndicate** — Run your own Concord instance with full control. Optionally flip a toggle to push your public forum content to the Cloud index. Your content appears in the global feed and search. You keep hosting it — Cloud links back to your instance.
+
+**Cost architecture for Cloud free tier:**
+- **No image hosting.** Free-tier communities link to external image hosts (Imgur, etc.). This keeps storage costs near zero. Paid tiers can include Cloudflare R2 media storage.
+- **Compute:** Multi-tenant on shared infrastructure. One Postgres cluster, schema-per-tenant.
+- **Revenue trigger:** Storage (images/files), voice/video, custom domains, priority support.
+
+**Syndication is not federation.** It's one-directional, admin-controlled, and simple:
+- Self-hosted admin enables syndication in server settings
+- Public forum posts are pushed to Cloud's index via a lightweight API
+- Cloud stores metadata + links, not full content
+- Cloud links back to the source instance for reading
+- Admin can revoke syndication at any time — content disappears from Cloud
+
 ---
 
 ## Release Phases
@@ -134,9 +187,9 @@ Same data. Same moderation. Same accounts. Two experiences.
 
 ---
 
-### Phase 4 — Concord Forums Frontend (v0.5.0)
+### Phase 4 — Concord Forums & Cloud (v0.5.0)
 
-> **Goal:** Launch the standalone Reddit-replacement frontend. Same backend, forum-first experience.
+> **Goal:** Launch the standalone Reddit-replacement frontend and the Concord Cloud public layer.
 
 | Feature | Description |
 | --- | --- |
@@ -150,6 +203,9 @@ Same data. Same moderation. Same accounts. Two experiences.
 | **Moderation queue** | Reported posts/comments queue for server moderators |
 | **RSS feeds** | Per-forum-channel RSS/Atom feed for external consumption |
 | **SEO optimization** | Server-side rendering for public forum pages. Open Graph meta tags, structured data |
+| **Concord Cloud launch** | Multi-tenant hosted platform. Free community creation (forums), paid managed chat instances |
+| **Syndication API** | Self-hosted instances can push public forum content to Cloud index. Metadata + links only, not full content hosting. Admin-controlled opt-in/revoke |
+| **External image linking** | Forum posts support external image URLs (Imgur, etc.). No Cloud-hosted media on free tier |
 
 ---
 
@@ -184,19 +240,40 @@ Same data. Same moderation. Same accounts. Two experiences.
 
 ### Managed Hosting (Concord Cloud)
 
-A hosted tier where we run the infrastructure. Pay for convenience, not features.
+Concord Cloud serves two audiences:
 
-**Architecture considerations:**
+1. **Managed chat hosting** — Pay to have us run a full Concord Chat instance for your community. Same features as self-hosted, zero ops burden.
+2. **Public forum platform** — The Reddit replacement. Anyone creates a community for free, posts content, builds an audience. No self-hosting required.
+
+**Architecture:**
 
 | Component | Approach |
 | --- | --- |
 | **Compute** | Railway or Fly.io. Per-instance containers with auto-scaling |
 | **Database** | Managed Postgres (Neon, Supabase, or Railway Postgres) with per-tenant schema isolation |
-| **Media storage** | Cloudflare R2 (S3-compatible, free egress) |
-| **Voice/Video** | LiveKit Cloud or self-managed LiveKit cluster |
+| **Media storage** | Free tier: none (users link to Imgur, etc.). Paid tier: Cloudflare R2 (S3-compatible, free egress) |
+| **Voice/Video** | LiveKit Cloud or self-managed LiveKit cluster (paid tier only) |
 | **CDN** | Cloudflare for static assets and public forum pages |
-| **Billing** | Stripe. Monthly per-server pricing |
+| **Billing** | Stripe. Monthly per-server pricing for managed chat; per-community for forum storage/features |
 | **Tenant isolation** | Schema-per-tenant in shared Postgres cluster (cost efficient) or dedicated instance for large servers |
+| **Syndication index** | Metadata store for self-hosted public content (links back to source, doesn't host content) |
+
+**Free forum tier (Reddit replacement):**
+- Create a community, post content, build an audience
+- No image hosting — link to external hosts (Imgur, etc.) to keep costs at zero
+- Text posts, markdown, upvotes, comments, tags — all free
+- Appears in global feed, search, and discovery
+
+**Paid tiers unlock:**
+- Image/file hosting (Cloudflare R2)
+- Voice/video channels (LiveKit)
+- Custom domain
+- Priority support
+- Higher rate limits
+- Full Concord Chat instance (managed hosting)
+
+**Migration path:**
+- Start free on Cloud → grow community → need more control → self-host → keep syndicating to Cloud for discoverability
 
 **What managed hosting includes:**
 - Automatic updates and security patches
@@ -204,11 +281,9 @@ A hosted tier where we run the infrastructure. Pay for convenience, not features
 - SSL/TLS and custom domain support
 - Uptime SLA
 - Priority support
-- Media CDN with generous storage
-- Voice/video infrastructure (LiveKit)
 
 **What it does NOT include that self-hosted doesn't:**
-- Nothing. Every feature is in both. Managed hosting is purely an operational convenience.
+- Nothing. Every feature is in both. Managed hosting is purely an operational convenience. Free forum tier is a subset for cost reasons, not a feature gate.
 
 ### Sustainability Model
 
@@ -225,6 +300,8 @@ The AGPL license is the monetization protection. Anyone running a modified Conco
 
 ## Competitive Positioning
 
+### vs. Discord Alternatives
+
 | | Concord | Discord | Matrix | Fluxer | Stoat | Zulip |
 | --- | --- | --- | --- | --- | --- | --- |
 | Self-hostable | Single docker compose | No | Yes (painful) | Yes (heavy) | Yes | Yes |
@@ -238,6 +315,22 @@ The AGPL license is the monetization protection. Anyone running a modified Conco
 | Bot API | Discord-compatible shim | Yes | Yes | Unknown | No | Yes |
 | Knowledge persistence | Forum channels + wiki | Pins only | No | Planned | No | Topics |
 | Rugpull risk | Zero (AGPL, no CLA) | N/A | Low | Medium (CLA) | Low | Low |
+
+### vs. Reddit Alternatives
+
+| | Concord Forums | Reddit | Lemmy | Kbin/Mbin | Discourse |
+| --- | --- | --- | --- | --- | --- |
+| Self-hostable | Yes (same stack as Chat) | No | Yes | Yes | Yes |
+| Real-time chat | Built-in (same server) | No | No | No | Plugin (limited) |
+| Voice/Video | Built-in (same server) | No | No | No | No |
+| Federation | No (opt-in syndication) | No | Yes (ActivityPub) | Yes (ActivityPub) | No |
+| Image hosting | BYOI free, R2 paid | Built-in | Instance-hosted | Instance-hosted | Instance-hosted |
+| Public SEO pages | Yes | Yes | Yes | Yes | Yes |
+| Migration from Chat | Same platform | N/A | N/A | N/A | N/A |
+| Moderation | Shared with Chat (full toolkit) | Yes | Basic | Basic | Good |
+| Free hosted tier | Yes (Concord Cloud) | Yes | No (need instance) | No (need instance) | No (paid hosting) |
+
+**The unique angle:** Nobody else offers real-time chat + persistent forums + voice/video in one platform. You either get Discord (chat only, no persistence) or Lemmy (forums only, no real-time). Concord does both.
 
 ---
 
