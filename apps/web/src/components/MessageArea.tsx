@@ -2,7 +2,10 @@ import MessageHeader from "./MessageHeader";
 import MessageList from "./MessageList";
 import TypingIndicator from "./TypingIndicator";
 import MessageInput from "./MessageInput";
+import OfflineIndicator from "./OfflineIndicator";
+import ThreadPanel from "./ThreadPanel";
 import { useChannelStore } from "../stores/channelStore";
+import { useThreadStore } from "../stores/threadStore";
 
 export default function MessageArea({
   onToggleMembers,
@@ -15,6 +18,7 @@ export default function MessageArea({
     const ch = s.channels.find((c) => c.id === s.selectedChannelId);
     return ch;
   });
+  const activeThreadId = useThreadStore((s) => s.activeThreadId);
 
   const channelName = selectedChannel?.name ?? "general";
   const topic = selectedChannel?.topic ?? undefined;
@@ -27,9 +31,15 @@ export default function MessageArea({
         onToggleMembers={onToggleMembers}
         membersVisible={membersVisible}
       />
-      <MessageList />
-      <TypingIndicator />
-      <MessageInput channelName={channelName} />
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col min-w-0">
+          <OfflineIndicator />
+          <MessageList />
+          <TypingIndicator />
+          <MessageInput channelName={channelName} />
+        </div>
+        {activeThreadId && <ThreadPanel />}
+      </div>
     </main>
   );
 }
