@@ -98,8 +98,13 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   addMessage: (message: Message) => {
     set((s) => {
-      // Avoid duplicates (e.g., if we already added it optimistically)
-      if (s.messages.some((m) => m.id === message.id)) return s;
+      const idx = s.messages.findIndex((m) => m.id === message.id);
+      if (idx !== -1) {
+        // Merge: replace existing (e.g., enrich optimistic message with author data)
+        const updated = [...s.messages];
+        updated[idx] = message;
+        return { messages: updated };
+      }
       return { messages: [...s.messages, message] };
     });
   },

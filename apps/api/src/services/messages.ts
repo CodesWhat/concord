@@ -10,7 +10,7 @@ export async function createMessage(
   authorId: string,
   content: string,
   replyToId?: string,
-): Promise<ServiceResult<typeof messages.$inferSelect>> {
+): Promise<ServiceResult<MessageWithAuthor>> {
   const id = BigInt(generateSnowflake());
 
   const [message] = await db
@@ -28,7 +28,32 @@ export async function createMessage(
     return { data: null, error: { code: "INTERNAL", message: "Failed to create message", statusCode: 500 } };
   }
 
-  return { data: message, error: null };
+  // Fetch author info for the response
+  const [author] = await db
+    .select({ username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+    .from(users)
+    .where(eq(users.id, authorId))
+    .limit(1);
+
+  return {
+    data: {
+      id: message.id.toString(),
+      channelId: message.channelId,
+      authorId: message.authorId,
+      content: message.content,
+      attachments: message.attachments,
+      embeds: message.embeds,
+      replyToId: message.replyToId?.toString() ?? null,
+      threadId: message.threadId,
+      editedAt: message.editedAt,
+      deleted: message.deleted,
+      createdAt: message.createdAt,
+      author: author
+        ? { username: author.username, displayName: author.displayName, avatarUrl: author.avatarUrl }
+        : { username: "unknown", displayName: "Unknown", avatarUrl: null },
+    },
+    error: null,
+  };
 }
 
 interface MessageWithAuthor {
@@ -110,7 +135,7 @@ export async function updateMessage(
   messageId: string,
   authorId: string,
   content: string,
-): Promise<ServiceResult<typeof messages.$inferSelect>> {
+): Promise<ServiceResult<MessageWithAuthor>> {
   // Verify author
   const existing = await db
     .select()
@@ -132,7 +157,32 @@ export async function updateMessage(
     .where(eq(messages.id, BigInt(messageId)))
     .returning();
 
-  return { data: updated!, error: null };
+  const msg = updated!;
+  const [author] = await db
+    .select({ username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+    .from(users)
+    .where(eq(users.id, msg.authorId))
+    .limit(1);
+
+  return {
+    data: {
+      id: msg.id.toString(),
+      channelId: msg.channelId,
+      authorId: msg.authorId,
+      content: msg.content,
+      attachments: msg.attachments,
+      embeds: msg.embeds,
+      replyToId: msg.replyToId?.toString() ?? null,
+      threadId: msg.threadId,
+      editedAt: msg.editedAt,
+      deleted: msg.deleted,
+      createdAt: msg.createdAt,
+      author: author
+        ? { username: author.username, displayName: author.displayName, avatarUrl: author.avatarUrl }
+        : { username: "unknown", displayName: "Unknown", avatarUrl: null },
+    },
+    error: null,
+  };
 }
 
 export async function deleteMessage(

@@ -36,24 +36,15 @@ export default async function messageRoutes(app: FastifyInstance) {
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }
-      // Convert bigint fields to strings for JSON serialization
       const msg = result.data!;
-      const serialized = {
-        ...msg,
-        id: msg.id.toString(),
-        replyToId: msg.replyToId?.toString() ?? null,
-      };
 
       // Dispatch MESSAGE_CREATE to channel members via gateway
       const serverId = await getServerIdFromChannel(request.params.channelId);
       if (serverId) {
-        dispatchToChannel(serverId, GatewayEvent.MESSAGE_CREATE, {
-          ...serialized,
-          channelId: request.params.channelId,
-        });
+        dispatchToChannel(serverId, GatewayEvent.MESSAGE_CREATE, msg);
       }
 
-      return reply.code(201).send(serialized);
+      return reply.code(201).send(msg);
     },
   );
 
@@ -99,22 +90,14 @@ export default async function messageRoutes(app: FastifyInstance) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }
       const msg = result.data!;
-      const serialized = {
-        ...msg,
-        id: msg.id.toString(),
-        replyToId: msg.replyToId?.toString() ?? null,
-      };
 
       // Dispatch MESSAGE_UPDATE to channel members via gateway
       const serverId = await getServerIdFromChannel(request.params.channelId);
       if (serverId) {
-        dispatchToChannel(serverId, GatewayEvent.MESSAGE_UPDATE, {
-          ...serialized,
-          channelId: request.params.channelId,
-        });
+        dispatchToChannel(serverId, GatewayEvent.MESSAGE_UPDATE, msg);
       }
 
-      return serialized;
+      return msg;
     },
   );
 
