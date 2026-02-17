@@ -43,6 +43,7 @@ These are non-negotiable for v1.0:
 | Screensharing & video chat | High | Via LiveKit. |
 | Bot/integration API | High | Discord-compatible API shim would accelerate migration. |
 | Knowledge base / pinned docs | High | Discord is terrible for persistent information (top community complaint, 155+ upvotes). Not a full forum — but structured, searchable, pinnable docs per channel/server. Think "wiki-lite" or enhanced pinned messages. Chat is ephemeral; knowledge should persist. |
+| Forum channels (Reddit replacement) | Critical | New channel type: `forum`. Threaded posts with titles, body (markdown), upvote/downvote, sort by hot/new/top. Nested comment trees. Server admins can toggle individual forum channels to be publicly readable without login (private by default). Positions Concord as a Reddit alternative for communities fleeing identity-sharing policies. Builds on existing server/channel model — no new top-level entities needed. Target: Phase 2. |
 | Custom emoji & stickers | Medium | Community identity matters. |
 | Federation | Low | Interesting but not a launch priority. Opens massive complexity. |
 | Plugin system | Medium | Allow communities to extend functionality without forking. Plugin hooks for things like age verification, proof-of-human, and custom automod. |
@@ -153,7 +154,8 @@ Channel
 ├── id (uuid)
 ├── server_id → Server
 ├── category_id → Category (nullable)
-├── type (text | voice | announcement | stage)
+├── type (text | voice | announcement | stage | forum)
+├── public_readable (boolean, default false — when true, forum posts visible without auth)
 ├── name
 ├── topic
 ├── position (int)
@@ -213,6 +215,30 @@ Invite
 ├── expires_at (nullable)
 └── created_at
 ```
+
+ForumPost (extends Message for forum channels)
+├── id (snowflake, same as message)
+├── channel_id → Channel (must be type=forum)
+├── author_id → User
+├── title (varchar 300, required for forum posts)
+├── content (text, markdown body)
+├── upvotes (int, default 0)
+├── downvotes (int, default 0)
+├── score (computed: upvotes - downvotes, indexed for hot/top sorting)
+├── pinned (boolean)
+├── locked (boolean — prevents new comments)
+├── comment_count (int, denormalized)
+├── created_at
+└── tags (jsonb array — admin-defined tags per forum channel)
+
+ForumVote
+├── post_id → ForumPost
+├── user_id → User
+├── value (+1 or -1)
+├── created_at
+└── Primary key: (post_id, user_id)
+
+Note: Forum comments reuse the existing Message model with reply_to_id pointing to the ForumPost or parent comment, forming a nested tree. No separate comment entity needed.
 
 ### 5.1 Message IDs: Snowflakes
 
@@ -566,10 +592,11 @@ To pull communities off Discord, we need migration tools:
 - Typing indicators, presence, unread tracking.
 - PWA manifest + service worker for installability.
 
-### Phase 2 — Voice & Moderation (Weeks 11–16)
+### Phase 2 — Voice, Forums & Moderation (Weeks 11–16)
 - LiveKit integration: voice channels, join/leave, mute/deafen.
 - Screensharing.
 - Video chat.
+- **Forum channels**: new channel type with threaded posts, titles, markdown bodies, upvote/downvote, sort by hot/new/top, nested comment trees, admin-defined tags. Public readability toggle per forum channel (SEO-friendly public pages for discoverability).
 - Moderation tools: ban, kick, mute, slowmode, audit log.
 - Built-in automod rules engine.
 - Push notifications (Web Push).
