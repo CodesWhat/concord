@@ -24,10 +24,16 @@ interface MessageState {
   isLoading: boolean;
   hasMore: boolean;
   isSending: boolean;
+  editingMessageId: string | null;
   fetchMessages: (channelId: string) => Promise<void>;
   loadMoreMessages: (channelId: string) => Promise<void>;
   sendMessage: (channelId: string, content: string) => Promise<void>;
   addMessage: (message: Message) => void;
+  updateMessage: (message: Message) => void;
+  removeMessage: (id: string) => void;
+  editMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
+  deleteMessage: (channelId: string, messageId: string) => Promise<void>;
+  setEditingMessage: (id: string | null) => void;
 }
 
 export const useMessageStore = create<MessageState>((set, get) => ({
@@ -35,6 +41,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   isLoading: false,
   hasMore: true,
   isSending: false,
+  editingMessageId: null,
 
   fetchMessages: async (channelId: string) => {
     set({ isLoading: true, messages: [], hasMore: true });
@@ -95,5 +102,58 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       if (s.messages.some((m) => m.id === message.id)) return s;
       return { messages: [...s.messages, message] };
     });
+  },
+
+  updateMessage: (message: Message) => {
+    set((s) => ({
+      messages: s.messages.map((m) => (m.id === message.id ? message : m)),
+    }));
+  },
+
+  removeMessage: (id: string) => {
+    set((s) => ({
+      messages: s.messages.filter((m) => m.id !== id),
+    }));
+  },
+
+  editMessage: async (channelId: string, messageId: string, content: string) => {
+    // Optimistic update
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.id === messageId ? { ...m, content, editedAt: new Date().toISOString() } : m,
+      ),
+      editingMessageId: null,
+    }));
+    try {
+      const updated = await api.patch<Message>(
+        `/api/v1/channels/${channelId}/messages/${messageId}`,
+        { content },
+      );
+      // Apply server response to ensure consistency
+      set((s) => ({
+        messages: s.messages.map((m) => (m.id === updated.id ? updated : m)),
+      }));
+    } catch {
+      // Refetch to restore correct state on failure
+      get().fetchMessages(channelId);
+    }
+  },
+
+  deleteMessage: async (channelId: string, messageId: string) => {
+    // Optimistic removal
+    const previous = get().messages;
+    set((s) => ({
+      messages: s.messages.filter((m) => m.id !== messageId),
+    }));
+    try {
+      await api.delete(`/api/v1/channels/${channelId}/messages/${messageId}`);
+    } catch {
+      // Restore on failure
+      set({ messages: previous });
+    }
+  },
+
+  setEditingMessage: (id: string | null) => {
+    set({ editingMessageId: id });
   },
 }));

@@ -1,4 +1,6 @@
 import { useMessageStore, type Message } from "../stores/messageStore.js";
+import { usePresenceStore } from "../stores/presenceStore.js";
+import { useTypingStore } from "../stores/typingStore.js";
 
 type GatewayPayload = {
   op: string;
@@ -83,6 +85,24 @@ class WebSocketClient {
     switch (type) {
       case "MESSAGE_CREATE":
         useMessageStore.getState().addMessage(data as unknown as Message);
+        break;
+      case "MESSAGE_UPDATE":
+        useMessageStore.getState().updateMessage(data as unknown as Message);
+        break;
+      case "MESSAGE_DELETE":
+        useMessageStore.getState().removeMessage((data as { id: string }).id);
+        break;
+      case "PRESENCE_UPDATE":
+        usePresenceStore.getState().updatePresence(
+          (data as { userId: string }).userId,
+          (data as { status: string }).status,
+        );
+        break;
+      case "TYPING_START":
+        useTypingStore.getState().addTyping(
+          (data as { channelId: string }).channelId,
+          (data as { userId: string }).userId,
+        );
         break;
     }
   }
