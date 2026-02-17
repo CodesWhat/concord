@@ -36,12 +36,40 @@ export interface Channel {
   permissionOverrides: Record<string, unknown>;
 }
 
+export interface Attachment {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  url: string;
+  width?: number;
+  height?: number;
+}
+
+export interface Thread {
+  id: string;
+  parentMessageId: string;
+  channelId: string;
+  name: string;
+  archived: boolean;
+  autoArchiveAfter: number | null;
+  messageCount: number;
+  createdAt: string;
+}
+
+export interface ReadState {
+  userId: string;
+  channelId: string;
+  lastReadMessageId: string | null;
+  mentionCount: number;
+}
+
 export interface Message {
   id: string;
   channelId: string;
   authorId: string;
   content: string;
-  attachments: unknown[];
+  attachments: Attachment[];
   embeds: unknown[];
   replyToId: string | null;
   threadId: string | null;

@@ -11,7 +11,7 @@ import { dispatchToChannel, GatewayEvent } from "../gateway/index.js";
 
 export default async function messageRoutes(app: FastifyInstance) {
   // POST /channels/:channelId/messages — Send message
-  app.post<{ Params: { channelId: string }; Body: { content: string; replyToId?: string } }>(
+  app.post<{ Params: { channelId: string }; Body: { content: string; replyToId?: string; attachments?: unknown[] } }>(
     "/channels/:channelId/messages",
     {
       preHandler: [
@@ -20,18 +20,20 @@ export default async function messageRoutes(app: FastifyInstance) {
       ],
     },
     async (request, reply) => {
-      const { content, replyToId } = request.body;
-      if (!content || content.trim().length === 0) {
-        return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "Message content is required", status: 400 } });
+      const { content, replyToId, attachments } = request.body;
+      const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+      if ((!content || content.trim().length === 0) && !hasAttachments) {
+        return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "Message content or attachments required", status: 400 } });
       }
-      if (content.length > 4000) {
+      if (content && content.length > 4000) {
         return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "Message content too long (max 4000 characters)", status: 400 } });
       }
       const result = await messageService.createMessage(
         request.params.channelId,
         request.userId,
-        content,
+        content ?? "",
         replyToId,
+        hasAttachments ? attachments : undefined,
       );
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });

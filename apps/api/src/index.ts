@@ -1,13 +1,18 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import { auth } from "./services/auth.js";
 import serverRoutes from "./routes/servers.js";
 import channelRoutes from "./routes/channels.js";
 import messageRoutes from "./routes/messages.js";
+import attachmentRoutes from "./routes/attachments.js";
 import inviteRoutes from "./routes/invites.js";
 import userRoutes from "./routes/users.js";
+import threadRoutes from "./routes/threads.js";
+import readStateRoutes from "./routes/readState.js";
 import { initGateway } from "./gateway/index.js";
+import { initBucket } from "./services/s3.js";
 
 const server = Fastify({
   logger: true,
@@ -17,6 +22,10 @@ await server.register(cors, {
   origin: "http://localhost:5173",
   credentials: true,
   allowedHeaders: ["content-type", "authorization"],
+});
+
+await server.register(multipart, {
+  limits: { fileSize: 25 * 1024 * 1024 },
 });
 
 // Better Auth catch-all route
@@ -59,8 +68,11 @@ server.route({
 await server.register(serverRoutes, { prefix: "/api/v1/servers" });
 await server.register(channelRoutes, { prefix: "/api/v1" });
 await server.register(messageRoutes, { prefix: "/api/v1" });
+await server.register(attachmentRoutes, { prefix: "/api/v1" });
 await server.register(inviteRoutes, { prefix: "/api/v1" });
 await server.register(userRoutes, { prefix: "/api/v1/users" });
+await server.register(threadRoutes, { prefix: "/api/v1" });
+await server.register(readStateRoutes, { prefix: "/api/v1" });
 
 server.get("/", async () => {
   return { status: "ok", name: "concord-api" };
@@ -76,6 +88,13 @@ try {
   // Initialize WebSocket gateway on the same HTTP server
   const httpServer = server.server;
   initGateway(httpServer);
+
+  // Initialize S3 bucket (non-fatal if S3 not configured)
+  try {
+    await initBucket();
+  } catch (err) {
+    server.log.warn(err, "S3 bucket init failed — file uploads may be unavailable");
+  }
 } catch (err) {
   server.log.error(err);
   process.exit(1);

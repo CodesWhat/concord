@@ -38,6 +38,7 @@ export const messages = pgTable(
       table.channelId,
       table.createdAt,
     ),
+    index("messages_thread_id_idx").on(table.threadId),
   ],
 );
 

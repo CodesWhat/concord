@@ -11,3 +11,8 @@ export { roles, rolesRelations } from "./roles.js";
 export { serverMembers, serverMembersRelations } from "./server-members.js";
 export { memberRoles, memberRolesRelations } from "./member-roles.js";
 export { invites, invitesRelations } from "./invites.js";
+export { threads, threadsRelations } from "./threads.js";
+export {
+  channelReadState,
+  channelReadStateRelations,
+} from "./channel-read-state.js";

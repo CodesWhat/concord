@@ -3,7 +3,7 @@ import type { Server as HttpServer } from "node:http";
 import { auth } from "../services/auth.js";
 import { db } from "../db.js";
 import { eq, inArray } from "drizzle-orm";
-import { serverMembers, servers, channels, users } from "../models/schema.js";
+import { serverMembers, servers, channels, users, channelReadState } from "../models/schema.js";
 import {
   GatewayOpcode,
   GatewayEvent,
@@ -190,6 +190,22 @@ async function handleIdentify(
 
     if (!userRow) return false;
 
+    // Load user's read states
+    const readStateRows = await db
+      .select({
+        channelId: channelReadState.channelId,
+        lastReadMessageId: channelReadState.lastReadMessageId,
+        mentionCount: channelReadState.mentionCount,
+      })
+      .from(channelReadState)
+      .where(eq(channelReadState.userId, userId));
+
+    const readStates = readStateRows.map((r) => ({
+      channelId: r.channelId,
+      lastReadMessageId: r.lastReadMessageId?.toString() ?? null,
+      mentionCount: r.mentionCount,
+    }));
+
     // Register connection
     addConnection(ws, userId, serverIds);
 
@@ -205,6 +221,7 @@ async function handleIdentify(
           ownerId: m.serverOwner,
         })),
         channels: allChannels,
+        readStates,
       },
     });
 

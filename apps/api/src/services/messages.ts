@@ -1,15 +1,17 @@
-import { eq, and, lt, desc } from "drizzle-orm";
+import { eq, and, lt, desc, inArray } from "drizzle-orm";
 import { db } from "../db.js";
 import { messages, users } from "../models/schema.js";
 import { generateSnowflake } from "../utils/snowflake.js";
 import { hasPermission, Permissions } from "@concord/shared";
 import type { ServiceResult } from "@concord/shared";
+import { incrementMentionCount } from "./readState.js";
 
 export async function createMessage(
   channelId: string,
   authorId: string,
   content: string,
   replyToId?: string,
+  attachments?: unknown[],
 ): Promise<ServiceResult<MessageWithAuthor>> {
   const id = BigInt(generateSnowflake());
 
@@ -21,6 +23,7 @@ export async function createMessage(
       authorId,
       content,
       replyToId: replyToId ? BigInt(replyToId) : undefined,
+      ...(attachments && attachments.length > 0 ? { attachments } : {}),
     })
     .returning();
 
@@ -34,6 +37,28 @@ export async function createMessage(
     .from(users)
     .where(eq(users.id, authorId))
     .limit(1);
+
+  // Parse @mentions and increment mention counts (fire-and-forget)
+  const mentionPattern = /@(\w+)/g;
+  const mentions = [...content.matchAll(mentionPattern)].map((m) => m[1]!);
+  if (mentions.length > 0) {
+    (async () => {
+      try {
+        const mentionedUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(inArray(users.username, mentions));
+
+        for (const u of mentionedUsers) {
+          if (u.id !== authorId) {
+            await incrementMentionCount(u.id, channelId);
+          }
+        }
+      } catch (err) {
+        console.error("[Messages] Failed to process mentions:", err);
+      }
+    })();
+  }
 
   return {
     data: {
