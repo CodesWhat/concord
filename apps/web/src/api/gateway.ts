@@ -1,0 +1,130 @@
+import { useMessageStore, type Message } from "../stores/messageStore.js";
+
+type GatewayPayload = {
+  op: string;
+  d?: Record<string, unknown>;
+  t?: string;
+};
+
+class WebSocketClient {
+  private ws: WebSocket | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private reconnectDelay = 1000;
+  private maxReconnectDelay = 30000;
+  private shouldReconnect = true;
+
+  connect() {
+    this.shouldReconnect = true;
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const url = `${protocol}//${window.location.host}/gateway`;
+
+    try {
+      this.ws = new WebSocket(url);
+    } catch {
+      console.warn("[Gateway] Failed to create WebSocket, will retry");
+      this.scheduleReconnect();
+      return;
+    }
+
+    this.ws.onopen = () => {
+      console.log("[Gateway] Connected");
+      this.reconnectDelay = 1000;
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data as string) as GatewayPayload;
+        this.handlePayload(payload);
+      } catch {
+        // ignore malformed messages
+      }
+    };
+
+    this.ws.onclose = () => {
+      console.log("[Gateway] Disconnected");
+      this.cleanup();
+      if (this.shouldReconnect) {
+        this.scheduleReconnect();
+      }
+    };
+
+    this.ws.onerror = () => {
+      // onclose will fire after this
+    };
+  }
+
+  disconnect() {
+    this.shouldReconnect = false;
+    this.cleanup();
+    this.ws?.close();
+    this.ws = null;
+  }
+
+  private handlePayload(payload: GatewayPayload) {
+    switch (payload.op) {
+      case "HELLO":
+        this.send({ op: "IDENTIFY", d: {} });
+        this.startHeartbeat(
+          (payload.d?.heartbeat_interval as number) ?? 30000,
+        );
+        break;
+
+      case "HEARTBEAT":
+        this.send({ op: "HEARTBEAT", d: {} });
+        break;
+
+      case "EVENT":
+        this.handleEvent(payload.t ?? "", payload.d ?? {});
+        break;
+    }
+  }
+
+  private handleEvent(type: string, data: Record<string, unknown>) {
+    switch (type) {
+      case "MESSAGE_CREATE":
+        useMessageStore.getState().addMessage(data as unknown as Message);
+        break;
+    }
+  }
+
+  private send(payload: GatewayPayload) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(payload));
+    }
+  }
+
+  private startHeartbeat(interval: number) {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      this.send({ op: "HEARTBEAT", d: {} });
+    }, interval);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
+  private cleanup() {
+    this.stopHeartbeat();
+  }
+
+  private scheduleReconnect() {
+    console.log(
+      `[Gateway] Reconnecting in ${this.reconnectDelay / 1000}s...`,
+    );
+    setTimeout(() => {
+      if (this.shouldReconnect) {
+        this.connect();
+      }
+    }, this.reconnectDelay);
+    this.reconnectDelay = Math.min(
+      this.reconnectDelay * 2,
+      this.maxReconnectDelay,
+    );
+  }
+}
+
+export const gateway = new WebSocketClient();

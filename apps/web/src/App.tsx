@@ -1,17 +1,51 @@
-function App() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-bg-deepest">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-primary-light">Concord</h1>
-        <p className="mt-4 text-lg text-text-secondary">
-          Open-source community platform
-        </p>
-        <div className="mt-8 inline-flex items-center gap-2 rounded-lg bg-bg-elevated px-4 py-2 text-sm text-text-muted">
-          <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-          Ready to build
-        </div>
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { LoginPage } from "./pages/auth/LoginPage";
+import { RegisterPage } from "./pages/auth/RegisterPage";
+import ChatPage from "./pages/app/ChatPage";
+import { useAuthStore } from "./stores/authStore";
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-primary">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
-    </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function App() {
+  const checkSession = useAuthStore((s) => s.checkSession);
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/app"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
