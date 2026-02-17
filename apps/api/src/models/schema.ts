@@ -16,3 +16,4 @@ export {
   channelReadState,
   channelReadStateRelations,
 } from "./channel-read-state.js";
+export { pushSubscriptions, pushSubscriptionsRelations } from "./push-subscriptions.js";

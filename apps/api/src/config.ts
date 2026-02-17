@@ -30,6 +30,12 @@ export const config = {
     secretKey: optional("S3_SECRET_KEY", ""),
   },
 
+  vapid: {
+    subject: optional("VAPID_SUBJECT", "mailto:admin@concord.chat"),
+    publicKey: optional("VAPID_PUBLIC_KEY", ""),
+    privateKey: optional("VAPID_PRIVATE_KEY", ""),
+  },
+
   nodeEnv: optional("NODE_ENV", "development"),
   isDev: optional("NODE_ENV", "development") === "development",
 } as const;

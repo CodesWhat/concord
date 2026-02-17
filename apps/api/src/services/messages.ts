@@ -5,6 +5,7 @@ import { generateSnowflake } from "../utils/snowflake.js";
 import { hasPermission, Permissions } from "@concord/shared";
 import type { ServiceResult } from "@concord/shared";
 import { incrementMentionCount } from "./readState.js";
+import { notifyMentionedUsers } from "./notifications.js";
 
 export async function createMessage(
   channelId: string,
@@ -53,6 +54,17 @@ export async function createMessage(
           if (u.id !== authorId) {
             await incrementMentionCount(u.id, channelId);
           }
+        }
+
+        // Send push notifications to mentioned users who are offline
+        const offlineMentionIds = mentionedUsers
+          .filter((u) => u.id !== authorId)
+          .map((u) => u.id);
+        if (offlineMentionIds.length > 0) {
+          await notifyMentionedUsers(
+            { authorId, content, channelId },
+            offlineMentionIds,
+          );
         }
       } catch (err) {
         console.error("[Messages] Failed to process mentions:", err);
