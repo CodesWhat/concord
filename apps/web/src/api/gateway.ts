@@ -1,6 +1,10 @@
 import { useMessageStore, type Message } from "../stores/messageStore.js";
 import { usePresenceStore } from "../stores/presenceStore.js";
 import { useTypingStore } from "../stores/typingStore.js";
+import { useChannelStore } from "../stores/channelStore.js";
+import { useUnreadStore } from "../stores/unreadStore.js";
+import { useThreadStore, type Thread, type ThreadMessage } from "../stores/threadStore.js";
+import { offlineSync } from "../utils/offlineSync.js";
 
 type GatewayPayload = {
   op: string;
@@ -31,6 +35,8 @@ class WebSocketClient {
     this.ws.onopen = () => {
       console.log("[Gateway] Connected");
       this.reconnectDelay = 1000;
+      // Sync any messages queued while offline
+      offlineSync.syncPending().catch(() => {});
     };
 
     this.ws.onmessage = (event) => {
@@ -75,6 +81,20 @@ class WebSocketClient {
         this.send({ op: "HEARTBEAT", d: {} });
         break;
 
+      case "READY":
+        if (payload.d?.readStates) {
+          useUnreadStore
+            .getState()
+            .initFromReadyPayload(
+              payload.d.readStates as Array<{
+                channelId: string;
+                lastReadMessageId: string | null;
+                mentionCount: number;
+              }>,
+            );
+        }
+        break;
+
       case "EVENT":
         this.handleEvent(payload.t ?? "", payload.d ?? {});
         break;
@@ -83,9 +103,16 @@ class WebSocketClient {
 
   private handleEvent(type: string, data: Record<string, unknown>) {
     switch (type) {
-      case "MESSAGE_CREATE":
-        useMessageStore.getState().addMessage(data as unknown as Message);
+      case "MESSAGE_CREATE": {
+        const msg = data as unknown as Message;
+        useMessageStore.getState().addMessage(msg);
+        const selectedChannelId =
+          useChannelStore.getState().selectedChannelId;
+        if (msg.channelId !== selectedChannelId) {
+          useUnreadStore.getState().incrementUnread(msg.channelId);
+        }
         break;
+      }
       case "MESSAGE_UPDATE":
         useMessageStore.getState().updateMessage(data as unknown as Message);
         break;
@@ -103,6 +130,26 @@ class WebSocketClient {
           (data as { channelId: string }).channelId,
           (data as { userId: string }).userId,
         );
+        break;
+      case "READ_STATE_UPDATE":
+        useUnreadStore
+          .getState()
+          .handleReadStateUpdate(
+            data as {
+              channelId: string;
+              lastReadMessageId: string | null;
+              mentionCount: number;
+            },
+          );
+        break;
+      case "THREAD_CREATE":
+        useThreadStore.getState().addThread(data as unknown as Thread);
+        break;
+      case "THREAD_UPDATE":
+        useThreadStore.getState().updateThread(data as unknown as Thread);
+        break;
+      case "THREAD_MESSAGE_CREATE":
+        useThreadStore.getState().addThreadMessage(data as unknown as ThreadMessage);
         break;
     }
   }

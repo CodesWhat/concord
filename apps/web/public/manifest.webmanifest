@@ -1,6 +1,9 @@
 {
   "name": "Concord",
   "short_name": "Concord",
+  "description": "Open-source chat platform for communities",
+  "id": "/",
+  "categories": ["social", "communication"],
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

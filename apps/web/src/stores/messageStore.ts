@@ -1,5 +1,8 @@
 import { create } from "zustand";
+import type { Attachment } from "@concord/shared";
 import { api } from "../api/client.js";
+import { cacheMessages, getCachedMessages } from "../utils/offlineDb.js";
+import { offlineSync } from "../utils/offlineSync.js";
 
 interface MessageAuthor {
   username: string;
@@ -12,11 +15,13 @@ export interface Message {
   channelId: string;
   authorId: string;
   content: string;
+  attachments: Attachment[];
   replyToId: string | null;
   editedAt: string | null;
   deleted: boolean;
   createdAt: string;
   author: MessageAuthor;
+  pending?: boolean;
 }
 
 interface MessageState {
@@ -25,15 +30,17 @@ interface MessageState {
   hasMore: boolean;
   isSending: boolean;
   editingMessageId: string | null;
+  newMessageIds: Set<string>;
   fetchMessages: (channelId: string) => Promise<void>;
   loadMoreMessages: (channelId: string) => Promise<void>;
-  sendMessage: (channelId: string, content: string) => Promise<void>;
+  sendMessage: (channelId: string, content: string, attachments?: Attachment[]) => Promise<void>;
   addMessage: (message: Message) => void;
   updateMessage: (message: Message) => void;
   removeMessage: (id: string) => void;
   editMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
   deleteMessage: (channelId: string, messageId: string) => Promise<void>;
   setEditingMessage: (id: string | null) => void;
+  clearNewFlag: (id: string) => void;
 }
 
 export const useMessageStore = create<MessageState>((set, get) => ({
@@ -42,6 +49,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   hasMore: true,
   isSending: false,
   editingMessageId: null,
+  newMessageIds: new Set(),
 
   fetchMessages: async (channelId: string) => {
     set({ isLoading: true, messages: [], hasMore: true });
@@ -50,8 +58,42 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         `/api/v1/channels/${channelId}/messages?limit=50`,
       );
       // API returns newest first, reverse for display (oldest at top)
-      set({ messages: messages.reverse(), isLoading: false, hasMore: messages.length >= 50 });
+      const reversed = messages.reverse();
+      set({ messages: reversed, isLoading: false, hasMore: messages.length >= 50 });
+      // Update offline cache in background
+      cacheMessages(channelId, reversed.map((m) => ({
+        ...m,
+        attachments: [],
+        embeds: [],
+        threadId: null,
+      }))).catch(() => {});
     } catch {
+      // Fallback to cached messages when offline
+      try {
+        const cached = await getCachedMessages(channelId);
+        if (cached.length > 0) {
+          cached.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          set({
+            messages: cached.map((m) => ({
+              id: m.id,
+              channelId: m.channelId,
+              authorId: m.authorId,
+              content: m.content,
+              attachments: (m.attachments ?? []) as Attachment[],
+              replyToId: m.replyToId,
+              editedAt: m.editedAt,
+              deleted: m.deleted,
+              createdAt: m.createdAt,
+              author: m.author,
+            })),
+            isLoading: false,
+            hasMore: false,
+          });
+          return;
+        }
+      } catch {
+        // IDB also failed, nothing to show
+      }
       set({ isLoading: false });
     }
   },
@@ -78,12 +120,40 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     }
   },
 
-  sendMessage: async (channelId: string, content: string) => {
+  sendMessage: async (channelId: string, content: string, attachments?: Attachment[]) => {
+    // Queue to IndexedDB if offline
+    if (!offlineSync.online) {
+      const pendingId = await offlineSync.queueMessage(channelId, content);
+      set((s) => ({
+        messages: [
+          ...s.messages,
+          {
+            id: pendingId,
+            channelId,
+            authorId: "",
+            content,
+            attachments: attachments ?? [],
+            replyToId: null,
+            editedAt: null,
+            deleted: false,
+            createdAt: new Date().toISOString(),
+            author: { username: "You", displayName: "You", avatarUrl: null },
+            pending: true,
+          },
+        ],
+      }));
+      return;
+    }
+
     set({ isSending: true });
     try {
+      const body: Record<string, unknown> = { content };
+      if (attachments && attachments.length > 0) {
+        body.attachments = attachments;
+      }
       const msg = await api.post<Message>(
         `/api/v1/channels/${channelId}/messages`,
-        { content },
+        body,
       );
       // The message from the API may not include author info in the create response.
       // We add it optimistically; the WebSocket event will provide the full message.
@@ -105,7 +175,9 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         updated[idx] = message;
         return { messages: updated };
       }
-      return { messages: [...s.messages, message] };
+      const newIds = new Set(s.newMessageIds);
+      newIds.add(message.id);
+      return { messages: [...s.messages, message], newMessageIds: newIds };
     });
   },
 
@@ -160,5 +232,13 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
   setEditingMessage: (id: string | null) => {
     set({ editingMessageId: id });
+  },
+
+  clearNewFlag: (id: string) => {
+    set((s) => {
+      const newIds = new Set(s.newMessageIds);
+      newIds.delete(id);
+      return { newMessageIds: newIds };
+    });
   },
 }));
