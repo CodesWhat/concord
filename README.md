@@ -223,6 +223,7 @@ Contributions are welcome! This project is AGPL-3.0 with **no CLA** — your con
 
 | Resource | Link |
 | --- | --- |
+| Roadmap | [ROADMAP.md](ROADMAP.md) |
 | Specification | [spec.md](spec.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 | Issues | [GitHub Issues](https://github.com/CodesWhat/concord/issues) |
