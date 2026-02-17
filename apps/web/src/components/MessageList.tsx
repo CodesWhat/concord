@@ -1,12 +1,15 @@
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState, useEffect, useMemo } from "react";
 import { useMessageStore, type Message } from "../stores/messageStore.js";
 import { useChannelStore } from "../stores/channelStore.js";
 import { useAuthStore } from "../stores/authStore.js";
+import { useThreadStore, type Thread } from "../stores/threadStore.js";
+import { useUnreadStore } from "../stores/unreadStore.js";
+import ThreadIndicator from "./ThreadIndicator.js";
+import AttachmentPreview from "./AttachmentPreview.js";
+import EmptyState from "./EmptyState.js";
 import Markdown from "./Markdown.js";
-
-function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
+import { getAvatarColor } from "../utils/colors.js";
+import { formatTime } from "../utils/format.js";
 
 function isGrouped(current: Message, prev: Message | undefined): boolean {
   if (!prev) return false;
@@ -20,17 +23,24 @@ function isGrouped(current: Message, prev: Message | undefined): boolean {
 function MessageActionBar({
   message,
   isOwnMessage,
+  hasThread,
   onEdit,
   onDelete,
+  onCreateThread,
 }: {
   message: Message;
   isOwnMessage: boolean;
+  hasThread: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onCreateThread: () => void;
 }) {
   return (
     <div className="absolute -top-4 right-2 hidden gap-0.5 rounded-md border border-border bg-bg-elevated px-1 py-0.5 shadow-lg group-hover:flex">
       <ActionBtn title="Reply"><ReplyIcon /></ActionBtn>
+      {!hasThread && (
+        <ActionBtn title="Create Thread" onClick={onCreateThread}><ThreadCreateIcon /></ActionBtn>
+      )}
       {isOwnMessage && (
         <ActionBtn title="Edit" onClick={onEdit}><EditIcon /></ActionBtn>
       )}
@@ -56,7 +66,7 @@ function ActionBtn({
     <button
       title={title}
       onClick={onClick}
-      className={`flex h-7 w-7 items-center justify-center rounded text-text-muted hover:bg-bg-content hover:text-text-secondary ${extraClass ?? ""}`}
+      className={`flex h-7 w-7 items-center justify-center rounded text-text-muted hover:bg-bg-content hover:text-text-secondary focus-visible:ring-1 focus-visible:ring-primary/50 outline-none ${extraClass ?? ""}`}
     >
       {children}
     </button>
@@ -73,19 +83,19 @@ function DeleteConfirmation({
   onCancel: () => void;
 }) {
   return (
-    <div className="mt-2 flex items-center gap-3 rounded-md border border-border bg-bg-deepest px-3 py-2">
+    <div className="mt-2 flex items-center gap-3 rounded-md border border-border bg-bg-deepest px-3 py-2 animate-fade-in">
       <span className="text-sm text-text-secondary">
         Delete this message? This cannot be undone.
       </span>
       <button
         onClick={onConfirm}
-        className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+        className="rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
       >
         Delete
       </button>
       <button
         onClick={onCancel}
-        className="rounded-md bg-bg-elevated px-3 py-1 text-xs font-medium text-text-secondary hover:bg-bg-content"
+        className="rounded-md bg-bg-elevated px-3 py-1 text-xs font-medium text-text-secondary hover:bg-bg-content focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
       >
         Cancel
       </button>
@@ -142,13 +152,13 @@ function InlineEdit({
               onCancel();
             }
           }}
-          className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-white hover:bg-primary/80"
+          className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-white hover:bg-primary/80 focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
         >
           Save
         </button>
         <button
           onClick={onCancel}
-          className="rounded-md bg-bg-elevated px-3 py-1 text-xs font-medium text-text-secondary hover:bg-bg-content"
+          className="rounded-md bg-bg-elevated px-3 py-1 text-xs font-medium text-text-secondary hover:bg-bg-content focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
         >
           Cancel
         </button>
@@ -165,9 +175,15 @@ function InlineEdit({
 function MessageRow({
   message,
   grouped,
+  thread,
+  isNew,
+  onAnimationEnd,
 }: {
   message: Message;
   grouped: boolean;
+  thread?: Thread;
+  isNew?: boolean;
+  onAnimationEnd?: () => void;
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const userId = useAuthStore((s) => s.user?.id);
@@ -176,6 +192,8 @@ function MessageRow({
   const setEditingMessage = useMessageStore((s) => s.setEditingMessage);
   const editMessage = useMessageStore((s) => s.editMessage);
   const deleteMessage = useMessageStore((s) => s.deleteMessage);
+  const openThread = useThreadStore((s) => s.openThread);
+  const createThread = useThreadStore((s) => s.createThread);
 
   const isOwnMessage = userId === message.authorId;
   const isEditing = editingMessageId === message.id;
@@ -213,6 +231,21 @@ function MessageRow({
     setShowDeleteConfirm(false);
   };
 
+  const handleCreateThread = async () => {
+    if (!selectedChannelId) return;
+    const defaultName = message.content.slice(0, 50).trim() || "Thread";
+    const name = window.prompt("Thread name:", defaultName);
+    if (!name) return;
+    const created = await createThread(selectedChannelId, message.id, name);
+    if (created) {
+      openThread(created.id);
+    }
+  };
+
+  const handleOpenThread = () => {
+    if (thread) openThread(thread.id);
+  };
+
   const editedTag = message.editedAt ? (
     <span className="ml-1 text-xs text-text-muted">(edited)</span>
   ) : null;
@@ -230,12 +263,26 @@ function MessageRow({
     </>
   );
 
+  const attachmentBlock = message.attachments && message.attachments.length > 0 ? (
+    <div className="mt-1 flex flex-wrap gap-2">
+      {message.attachments.map((att) => (
+        <AttachmentPreview key={att.id} attachment={att} />
+      ))}
+    </div>
+  ) : null;
+
+  const threadIndicator = thread ? (
+    <ThreadIndicator thread={thread} onClick={handleOpenThread} />
+  ) : null;
+
   if (grouped) {
     return (
-      <div className={`group relative flex items-start px-4 py-0.5 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""}`}>
+      <div className={`group relative flex items-start px-4 py-0.5 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
         <div className="w-10 shrink-0 mr-4" />
         <div className="min-w-0 flex-1 text-sm leading-relaxed text-text-primary">
           {messageContent}
+          {attachmentBlock}
+          {threadIndicator}
           {showDeleteConfirm && (
             <DeleteConfirmation
               onConfirm={handleConfirmDelete}
@@ -247,8 +294,10 @@ function MessageRow({
           <MessageActionBar
             message={message}
             isOwnMessage={isOwnMessage}
+            hasThread={!!thread}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onCreateThread={handleCreateThread}
           />
         )}
       </div>
@@ -256,8 +305,11 @@ function MessageRow({
   }
 
   return (
-    <div className={`group relative flex items-start px-4 py-2 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""}`}>
-      <div className="mr-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white bg-primary/30">
+    <div className={`group relative flex items-start px-4 py-2 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
+      <div
+        className="mr-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+        style={{ backgroundColor: getAvatarColor(message.authorId).bg, color: getAvatarColor(message.authorId).text }}
+      >
         {initial}
       </div>
       <div className="min-w-0 flex-1">
@@ -265,11 +317,13 @@ function MessageRow({
           <span className="text-sm font-semibold text-text-primary">
             {authorName}
           </span>
-          <span className="text-xs text-text-muted">{formatTime(message.createdAt)}</span>
+          <span className="text-xs text-text-secondary">{formatTime(message.createdAt)}</span>
         </div>
         <div className="text-sm leading-relaxed text-text-primary">
           {messageContent}
         </div>
+        {attachmentBlock}
+        {threadIndicator}
         {showDeleteConfirm && (
           <DeleteConfirmation
             onConfirm={handleConfirmDelete}
@@ -281,8 +335,10 @@ function MessageRow({
         <MessageActionBar
           message={message}
           isOwnMessage={isOwnMessage}
+          hasThread={!!thread}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onCreateThread={handleCreateThread}
         />
       )}
     </div>
@@ -297,7 +353,60 @@ export default function MessageList() {
   const hasMore = useMessageStore((s) => s.hasMore);
   const loadMoreMessages = useMessageStore((s) => s.loadMoreMessages);
   const selectedChannelId = useChannelStore((s) => s.selectedChannelId);
+  const newMessageIds = useMessageStore((s) => s.newMessageIds);
+  const clearNewFlag = useMessageStore((s) => s.clearNewFlag);
+  const threads = useThreadStore((s) => s.threads);
+  const fetchChannelThreads = useThreadStore((s) => s.fetchChannelThreads);
+  const markChannelRead = useUnreadStore((s) => s.markChannelRead);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
+  const markReadTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  // Fetch threads when channel changes
+  useEffect(() => {
+    if (selectedChannelId) {
+      fetchChannelThreads(selectedChannelId);
+    }
+  }, [selectedChannelId, fetchChannelThreads]);
+
+  // Auto-mark channel as read when last message is visible
+  useEffect(() => {
+    if (!selectedChannelId || messages.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          clearTimeout(markReadTimerRef.current);
+          markReadTimerRef.current = setTimeout(() => {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg) {
+              markChannelRead(selectedChannelId, lastMsg.id);
+            }
+          }, 500);
+        }
+      },
+      { threshold: 0.5 },
+    );
+
+    if (lastMessageRef.current) {
+      observer.observe(lastMessageRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(markReadTimerRef.current);
+    };
+  }, [selectedChannelId, messages, markChannelRead]);
+
+  // Build a lookup from parentMessageId -> thread
+  const threadByMessage = useMemo(() => {
+    const map = new Map<string, Thread>();
+    for (const t of threads) {
+      map.set(t.parentMessageId, t);
+    }
+    return map;
+  }, [threads]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -305,12 +414,24 @@ export default function MessageList() {
     if (el.scrollTop < 100 && hasMore && !isLoading) {
       loadMoreMessages(selectedChannelId);
     }
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 80;
+    setIsAtBottom(nearBottom);
   }, [selectedChannelId, hasMore, isLoading, loadMoreMessages]);
+
+  useEffect(() => {
+    if (isAtBottom && lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length, isAtBottom]);
 
   if (!selectedChannelId) {
     return (
-      <div className="flex flex-1 items-center justify-center text-text-muted">
-        Select a channel to start chatting
+      <div className="flex flex-1 items-center justify-center">
+        <EmptyState
+          icon={<HashIcon />}
+          heading="Select a channel"
+          subtext="Pick a channel from the sidebar to start chatting"
+        />
       </div>
     );
   }
@@ -324,23 +445,48 @@ export default function MessageList() {
   }
 
   return (
-    <div
-      ref={scrollRef}
-      onScroll={handleScroll}
-      className="flex-1 overflow-y-auto scrollbar-thin"
-    >
-      <div className="flex flex-col py-4">
-        {messages.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-text-muted">
-            No messages yet. Start the conversation!
-          </p>
-        )}
-        {messages.map((msg, i) => {
-          const prev = i > 0 ? messages[i - 1] : undefined;
-          const grouped = isGrouped(msg, prev);
-          return <MessageRow key={msg.id} message={msg} grouped={grouped} />;
-        })}
+    <div className="relative flex-1">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="h-full overflow-y-auto scrollbar-thin"
+      >
+        <div className="flex flex-col py-4">
+          {messages.length === 0 && (
+            <EmptyState
+              icon={<ChatBubbleIcon />}
+              heading="No messages yet"
+              subtext="Be the first to say something!"
+            />
+          )}
+          {messages.map((msg, i) => {
+            const prev = i > 0 ? messages[i - 1] : undefined;
+            const grouped = isGrouped(msg, prev);
+            return (
+              <MessageRow
+                key={msg.id}
+                message={msg}
+                grouped={grouped}
+                thread={threadByMessage.get(msg.id)}
+                isNew={newMessageIds.has(msg.id)}
+                onAnimationEnd={() => clearNewFlag(msg.id)}
+              />
+            );
+          })}
+          <div ref={lastMessageRef} className="h-px" />
+        </div>
       </div>
+      {!isAtBottom && messages.length > 0 && (
+        <button
+          onClick={() => lastMessageRef.current?.scrollIntoView({ behavior: "smooth" })}
+          className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-bg-elevated shadow-lg transition-opacity hover:bg-bg-content"
+          title="Jump to bottom"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -369,6 +515,32 @@ function DeleteIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+function ThreadCreateIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <line x1="9" y1="10" x2="15" y2="10" />
+    </svg>
+  );
+}
+
+function HashIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" />
+      <line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" />
+    </svg>
+  );
+}
+
+function ChatBubbleIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   );
 }

@@ -1,16 +1,32 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useMessageStore } from "../stores/messageStore.js";
 import { useChannelStore } from "../stores/channelStore.js";
+import { useUploadStore } from "../stores/uploadStore.js";
+import { offlineSync } from "../utils/offlineSync.js";
 import { api } from "../api/client.js";
+import FileUploadPreview from "./FileUploadPreview.js";
 
 export default function MessageInput({ channelName }: { channelName: string }) {
   const [value, setValue] = useState("");
+  const [online, setOnline] = useState(offlineSync.online);
+  const [dragOver, setDragOver] = useState(false);
   const sendMessage = useMessageStore((s) => s.sendMessage);
   const isSending = useMessageStore((s) => s.isSending);
   const editingMessageId = useMessageStore((s) => s.editingMessageId);
   const setEditingMessage = useMessageStore((s) => s.setEditingMessage);
   const selectedChannelId = useChannelStore((s) => s.selectedChannelId);
   const lastTypingSent = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const pendingFiles = useUploadStore((s) => s.pendingFiles);
+  const addFiles = useUploadStore((s) => s.addFiles);
+  const uploadFiles = useUploadStore((s) => s.uploadFiles);
+  const isUploading = useUploadStore((s) => s.isUploading);
+
+  useEffect(() => {
+    return offlineSync.subscribe(setOnline);
+  }, []);
 
   const handleTyping = () => {
     if (!selectedChannelId) return;
@@ -33,10 +49,28 @@ export default function MessageInput({ channelName }: { channelName: string }) {
   }, [editingMessageId, setEditingMessage]);
 
   const handleSubmit = async () => {
-    if (!value.trim() || !selectedChannelId || isSending) return;
+    const hasContent = value.trim().length > 0;
+    const hasFiles = pendingFiles.length > 0;
+    if ((!hasContent && !hasFiles) || !selectedChannelId || isSending || isUploading) return;
+
     const content = value.trim();
     setValue("");
-    await sendMessage(selectedChannelId, content);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+
+    let attachments;
+    if (hasFiles) {
+      try {
+        attachments = await uploadFiles(selectedChannelId);
+      } catch {
+        return;
+      }
+    }
+
+    if (content || (attachments && attachments.length > 0)) {
+      await sendMessage(selectedChannelId, content, attachments);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -46,8 +80,60 @@ export default function MessageInput({ channelName }: { channelName: string }) {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      addFiles(Array.from(files));
+    }
+    e.target.value = "";
+  };
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData.items;
+      const imageFiles: File[] = [];
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      if (imageFiles.length > 0) {
+        addFiles(imageFiles);
+      }
+    },
+    [addFiles],
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        addFiles(Array.from(files));
+      }
+    },
+    [addFiles],
+  );
+
   return (
-    <div className="px-4 pb-6 pt-1">
+    <div
+      className="px-4 pb-6 pt-1"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {editingMessageId && (
         <div className="mb-1 flex items-center justify-between rounded-t-lg bg-bg-elevated px-4 py-1.5">
           <div className="flex items-center gap-2 text-xs text-text-secondary">
@@ -62,24 +148,43 @@ export default function MessageInput({ channelName }: { channelName: string }) {
           </button>
         </div>
       )}
-      <div className={`flex items-center gap-2 bg-bg-elevated px-4 py-2.5 ${editingMessageId ? "rounded-b-lg" : "rounded-lg"}`}>
+
+      <FileUploadPreview />
+
+      <div
+        className={`flex items-end gap-2 bg-bg-elevated px-4 py-2.5 ${
+          editingMessageId ? "rounded-b-lg" : pendingFiles.length > 0 ? "rounded-b-lg" : "rounded-lg"
+        } ${dragOver ? "ring-2 ring-primary" : ""}`}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFileSelect}
+        />
         <button
           className="flex shrink-0 items-center justify-center rounded-md text-text-muted hover:text-text-secondary"
           title="Attach file"
+          onClick={() => fileInputRef.current?.click()}
         >
           <PlusCircleIcon />
         </button>
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
             handleTyping();
+            e.target.style.height = "auto";
+            e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
           }}
           onKeyDown={handleKeyDown}
-          placeholder={`Message #${channelName}`}
-          disabled={!selectedChannelId || isSending}
-          className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none disabled:opacity-50"
+          onPaste={handlePaste}
+          placeholder={online ? `Message #${channelName}` : `Message #${channelName} (offline — will send later)`}
+          disabled={!selectedChannelId || isSending || isUploading}
+          rows={1}
+          className="flex-1 resize-none bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none disabled:opacity-50 max-h-[200px] overflow-y-auto"
         />
         <button
           className="flex shrink-0 items-center justify-center rounded-md text-text-muted hover:text-text-secondary"
