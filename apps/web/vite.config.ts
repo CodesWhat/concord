@@ -8,24 +8,18 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-icon.png", "logo.png"],
-      manifest: false, // Use existing manifest.webmanifest
-      workbox: {
+      manifest: false,
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/api\//,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "api-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60, // 1 hour
-              },
-            },
-          },
-        ],
+      },
+      devOptions: {
+        enabled: true,
+        type: "module",
       },
     }),
   ],

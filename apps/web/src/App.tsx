@@ -31,6 +31,31 @@ function App() {
     checkSession();
   }, [checkSession]);
 
+  // Re-register push subscription for returning users who already granted permission
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "granted" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then(async (registration) => {
+        const sub = await registration.pushManager.getSubscription();
+        if (sub) {
+          const json = sub.toJSON();
+          try {
+            await fetch("/api/v1/users/@me/push-subscription", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                endpoint: json.endpoint,
+                keys: { p256dh: json.keys?.p256dh, auth: json.keys?.auth },
+              }),
+            });
+          } catch {
+            // Silently fail — push is best-effort
+          }
+        }
+      });
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
