@@ -19,7 +19,7 @@ export const messages = pgTable(
     channelId: uuid("channel_id")
       .references(() => channels.id)
       .notNull(),
-    authorId: uuid("author_id")
+    authorId: text("author_id")
       .references(() => users.id)
       .notNull(),
     content: text("content").notNull(),

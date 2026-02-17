@@ -1,6 +1,5 @@
 import {
   pgTable,
-  uuid,
   varchar,
   text,
   integer,
@@ -19,7 +18,7 @@ export const userStatusEnum = pgEnum("user_status", [
 ]);
 
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: text("id").primaryKey(),
   username: varchar("username", { length: 32 }).unique().notNull(),
   displayName: varchar("display_name", { length: 64 }).notNull(),
   avatarUrl: text("avatar_url"),

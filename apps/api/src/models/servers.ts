@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, text, jsonb, timestamp } from "drizzle-orm/pg-core";
+// Note: servers.id stays uuid, but ownerId is text to match Better Auth user IDs
 import { relations } from "drizzle-orm";
 import { users } from "./users.js";
 import { categories } from "./categories.js";
@@ -11,7 +12,7 @@ export const servers = pgTable("servers", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 100 }).notNull(),
   iconUrl: text("icon_url"),
-  ownerId: uuid("owner_id")
+  ownerId: text("owner_id")
     .references(() => users.id)
     .notNull(),
   description: text("description"),

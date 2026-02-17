@@ -1,6 +1,7 @@
 import {
   pgTable,
   uuid,
+  text,
   varchar,
   integer,
   timestamp,
@@ -16,7 +17,7 @@ export const invites = pgTable("invites", {
     .references(() => servers.id)
     .notNull(),
   channelId: uuid("channel_id").references(() => channels.id),
-  creatorId: uuid("creator_id")
+  creatorId: text("creator_id")
     .references(() => users.id)
     .notNull(),
   maxUses: integer("max_uses"),

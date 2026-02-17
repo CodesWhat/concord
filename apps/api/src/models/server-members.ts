@@ -1,6 +1,7 @@
 import {
   pgTable,
   uuid,
+  text,
   varchar,
   boolean,
   timestamp,
@@ -14,7 +15,7 @@ import { memberRoles } from "./member-roles.js";
 export const serverMembers = pgTable(
   "server_members",
   {
-    userId: uuid("user_id")
+    userId: text("user_id")
       .references(() => users.id)
       .notNull(),
     serverId: uuid("server_id")

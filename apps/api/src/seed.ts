@@ -2,6 +2,7 @@ import "dotenv/config";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { hash } from "@node-rs/argon2";
+import crypto from "node:crypto";
 import * as schema from "./models/schema.js";
 
 const DATABASE_URL =
@@ -10,6 +11,10 @@ const DATABASE_URL =
 
 const sql = postgres(DATABASE_URL);
 const db = drizzle(sql, { schema });
+
+function generateId(): string {
+  return crypto.randomBytes(16).toString("base64url");
+}
 
 async function seed() {
   console.log("Seeding database...");
@@ -22,12 +27,14 @@ async function seed() {
     .insert(schema.users)
     .values([
       {
+        id: generateId(),
         username: "admin",
         email: "admin@concord.local",
         displayName: "Admin",
         passwordHash,
       },
       {
+        id: generateId(),
         username: "testuser",
         email: "test@concord.local",
         displayName: "Test User",
