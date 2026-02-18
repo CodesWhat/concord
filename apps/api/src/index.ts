@@ -2,6 +2,7 @@ import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import { config } from "./config.js";
 import { auth } from "./services/auth.js";
 import serverRoutes from "./routes/servers.js";
 import channelRoutes from "./routes/channels.js";
@@ -13,6 +14,7 @@ import threadRoutes from "./routes/threads.js";
 import readStateRoutes from "./routes/readState.js";
 import notificationRoutes from "./routes/notifications.js";
 import roleRoutes from "./routes/roles.js";
+import forumRoutes from "./routes/forum.js";
 import { initGateway } from "./gateway/index.js";
 import { initBucket } from "./services/s3.js";
 
@@ -21,7 +23,7 @@ const server = Fastify({
 });
 
 await server.register(cors, {
-  origin: "http://localhost:5173",
+  origin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   credentials: true,
   allowedHeaders: ["content-type", "authorization"],
 });
@@ -77,6 +79,7 @@ await server.register(userRoutes, { prefix: "/api/v1/users" });
 await server.register(threadRoutes, { prefix: "/api/v1" });
 await server.register(readStateRoutes, { prefix: "/api/v1" });
 await server.register(notificationRoutes, { prefix: "/api/v1" });
+await server.register(forumRoutes, { prefix: "/api/v1" });
 
 server.get("/", async () => {
   return { status: "ok", name: "concord-api" };
@@ -87,7 +90,7 @@ server.get("/health", async () => {
 });
 
 try {
-  await server.listen({ port: 3000, host: "0.0.0.0" });
+  await server.listen({ port: config.port, host: config.host });
 
   // Initialize WebSocket gateway on the same HTTP server
   const httpServer = server.server;

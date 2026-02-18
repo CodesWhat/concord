@@ -1,6 +1,6 @@
 export type UserStatus = "online" | "idle" | "dnd" | "offline";
 
-export type ChannelType = "text" | "voice" | "announcement" | "stage";
+export type ChannelType = "text" | "voice" | "announcement" | "stage" | "forum";
 
 export interface User {
   id: string;
@@ -99,6 +99,27 @@ export interface Role {
 export interface PermissionOverride {
   allow: number;
   deny: number;
+}
+
+export interface ForumPost {
+  id: string;
+  channelId: string;
+  authorId: string;
+  title: string;
+  content: string;
+  upvotes: number;
+  downvotes: number;
+  score: number;
+  pinned: boolean;
+  locked: boolean;
+  commentCount: number;
+  tags: string[];
+  createdAt: string;
+  author?: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
 }
 
 export type ServiceResult<T> =

@@ -28,6 +28,10 @@ export enum GatewayEvent {
   ROLE_UPDATE = "ROLE_UPDATE",
   ROLE_DELETE = "ROLE_DELETE",
   MEMBER_ROLE_UPDATE = "MEMBER_ROLE_UPDATE",
+  POST_CREATE = "POST_CREATE",
+  POST_UPDATE = "POST_UPDATE",
+  POST_DELETE = "POST_DELETE",
+  POST_VOTE = "POST_VOTE",
 }
 
 // Wire format: every message is { op, d, t?, s? }

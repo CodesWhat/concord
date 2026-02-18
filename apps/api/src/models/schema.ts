@@ -17,3 +17,9 @@ export {
   channelReadStateRelations,
 } from "./channel-read-state.js";
 export { pushSubscriptions, pushSubscriptionsRelations } from "./push-subscriptions.js";
+export {
+  forumPosts,
+  forumPostsRelations,
+  forumVotes,
+  forumVotesRelations,
+} from "./forum-posts.js";

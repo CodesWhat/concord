@@ -19,6 +19,7 @@ export const channelTypeEnum = pgEnum("channel_type", [
   "voice",
   "announcement",
   "stage",
+  "forum",
 ]);
 
 export const channels = pgTable("channels", {
