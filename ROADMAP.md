@@ -128,43 +128,56 @@ Self-hosted Concord instances are private by default. But communities want disco
 
 ---
 
-### Phase 1 — Chat MVP (v0.2.0)
+### Phase 1 — Chat MVP + Forums (v0.2.0) 🔨 IN PROGRESS
 
-> **Goal:** A usable chat platform you'd actually want to use daily. Install it, invite friends, start talking.
+> **Goal:** A usable chat platform you'd actually want to use daily. Install it, invite friends, start talking. Plus forum channels — because this is how we differentiate from day one.
 
-| Feature | Description |
+| Feature | Status |
 | --- | --- |
-| Full message editing and deletion | Edit/delete your own messages, mods can delete others |
-| Markdown rendering | GFM subset: bold, italic, code blocks, links, quotes, lists |
-| File uploads | Images, attachments via MinIO/S3. Drag-and-drop, paste, preview before send |
-| Threads | Reply threads branching from any message. Thread panel in sidebar |
-| Typing indicators | "User is typing..." with batched display for multiple users |
-| Presence tracking | Online/idle/DND/offline status with Redis TTL keys |
-| Unread tracking | Per-channel unread counts, mention badges, "mark as read" |
-| Invite system UI | Create/manage invite links with expiration and usage limits |
-| PWA installability | Service worker, offline message cache, push notification registration |
-| User profiles | Display name, avatar upload, status message, about section |
-| Server settings UI | Name, icon, description, categories, channel management |
-| Quick switcher | Cmd/Ctrl+K to fuzzy-search servers, channels, users |
+| Full message editing and deletion | Done |
+| Markdown rendering (GFM subset) | Done |
+| File uploads (images, attachments via S3, drag-and-drop, paste) | Done |
+| Threads (reply threads branching from any message) | Done |
+| Typing indicators | Done |
+| Presence tracking (online/idle/DND/offline) | Done |
+| Unread tracking (per-channel counts, mention badges) | Done |
+| Invite system UI | Done |
+| PWA installability (service worker, push notification registration) | Done |
+| Quick switcher (Cmd/Ctrl+K) | Done |
+| Server settings UI (name, categories, channel management) | Done |
+| Role management (CRUD, hierarchy, permission editor) | Done |
+| Channel permission overrides (per-role allow/deny/inherit) | Done |
+| Push notifications (Web Push for @mentions) | Done |
+| Logout / user settings popover | Done |
+| Server creation modal (replaces window.prompt) | Done |
+| Thread creation modal | Done |
+| **Forum channels** — posts with titles, markdown, upvote/downvote, comments | In Progress |
+| **Forum frontend** — post list, post detail, vote UI, create post | In Progress |
+| **Deployment config** — env-driven CORS/auth, nginx, Docker, .dockerignore | Done |
+| **OG meta tags** for Reddit/social link previews | Done |
+| User profiles (display name, avatar upload, status message, about) | Planned |
+| Activity feed (consolidated mentions, replies) | Deferred to Phase 2 |
+
+**Target:** r/selfhosted launch + cloud demo at `concord.codeswhat.com`
 
 ---
 
-### Phase 2 — Voice, Forums & Moderation (v0.3.0)
+### Phase 2 — Voice, Moderation & Polish (v0.3.0)
 
-> **Goal:** Voice/video, the forum channel type, and moderation tools. This is where Concord becomes a real Discord replacement AND starts the Reddit angle.
+> **Goal:** Voice/video, moderation tools, and UX polish. The full Discord-replacement feature set.
 
 | Feature | Description |
 | --- | --- |
 | **Voice channels** | LiveKit integration. Persistent hop-in/hop-out rooms. Mute/deafen. Speaker indicators |
 | **Video chat** | Camera toggle in voice channels. Grid/spotlight view |
 | **Screensharing** | Share screen or window. Multiple simultaneous streams |
-| **Forum channels** | New channel type: threaded posts with title + markdown body, upvote/downvote, sort by hot/new/top, nested comment trees, admin-defined tags |
 | **Public forum toggle** | Per-forum-channel setting. When enabled: publicly readable without login, indexable by search engines, SEO-friendly URLs (`/s/:server/:forum/:post`) |
 | **Moderation tools** | Ban, kick, mute (timed), slowmode per-channel, audit log with filters |
 | **Automod engine** | Rule-based: spam detection, link filtering, word filters, raid protection |
-| **Push notifications** | Web Push API. Per-channel notification settings (all/mentions/none) |
-| **iOS native wrapper** | WKWebView + LiveKit iOS SDK for background voice audio |
+| **User profiles** | Full profile pages: display name, avatar upload, status message, about section |
 | **Activity feed** | Consolidated mentions, replies, reactions across all servers |
+| **iOS native wrapper** | WKWebView + LiveKit iOS SDK for background voice audio |
+| **Rate limiting** | Per-endpoint rate limits on auth and API routes |
 
 ---
 
