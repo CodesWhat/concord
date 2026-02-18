@@ -7,7 +7,7 @@ import { usePresenceStore } from "../stores/presenceStore";
 import { api } from "../api/client.js";
 import type { ChannelType } from "@concord/shared";
 import {
-  HashIcon, SpeakerIcon, ChevronIcon, ChevronDownIcon,
+  HashIcon, SpeakerIcon, ForumIcon, ChevronIcon, ChevronDownIcon,
   BackIcon, MicIcon, HeadphoneIcon, GearIcon,
 } from "./ChannelSidebarIcons";
 import InviteModal from "./InviteModal";
@@ -36,7 +36,7 @@ function ChannelItem({ channel, isActive, onClick }: ChannelItemProps) {
           : "text-text-muted hover:text-text-secondary hover:bg-bg-elevated/50"
       }`}
     >
-      {channel.type === "voice" ? <SpeakerIcon /> : <HashIcon />}
+      {channel.type === "forum" ? <ForumIcon /> : channel.type === "voice" ? <SpeakerIcon /> : <HashIcon />}
       <span
         className={`truncate group-hover:text-text-secondary ${hasUnread && !isActive ? "font-semibold text-text-primary" : ""}`}
       >
@@ -91,14 +91,49 @@ function CategorySection({
   );
 }
 
-function IconButton({ children, title }: { children: React.ReactNode; title: string }) {
+function IconButton({ children, title, onClick }: { children: React.ReactNode; title: string; onClick?: () => void }) {
   return (
     <button
       title={title}
+      onClick={onClick}
       className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-bg-elevated hover:text-text-secondary focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
     >
       {children}
     </button>
+  );
+}
+
+function UserSettingsPopover({ user, onClose }: { user: { name?: string; email?: string }; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const logout = useAuthStore((s) => s.logout);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = "/auth/login";
+  };
+
+  return (
+    <div ref={ref} className="absolute bottom-full left-0 z-50 mb-2 w-56 rounded-lg bg-bg-elevated p-2 shadow-lg border border-border animate-scale-in">
+      <div className="px-2 py-1.5">
+        <div className="text-sm font-bold text-text-primary">{user.name ?? "Unknown"}</div>
+        <div className="text-xs text-text-muted">{user.email ?? ""}</div>
+      </div>
+      <div className="my-1 h-px bg-border" />
+      <button
+        onClick={handleLogout}
+        className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-red-400 hover:bg-bg-content focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
+      >
+        Log Out
+      </button>
+    </div>
   );
 }
 
@@ -177,6 +212,7 @@ export default function ChannelSidebar({ onBack }: { onBack?: () => void }) {
   const user = useAuthStore((s) => s.user);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
 
   const selectedServer = servers.find((s) => s.id === selectedServerId);
 
@@ -267,10 +303,13 @@ export default function ChannelSidebar({ onBack }: { onBack?: () => void }) {
           </div>
           <div className="text-xs text-text-muted">{user?.email ?? ""}</div>
         </div>
-        <div className="flex gap-1">
+        <div className="relative flex gap-1">
           <IconButton title="Mute"><MicIcon /></IconButton>
           <IconButton title="Deafen"><HeadphoneIcon /></IconButton>
-          <IconButton title="Settings"><GearIcon /></IconButton>
+          <IconButton title="Settings" onClick={() => setUserPopoverOpen((o) => !o)}><GearIcon /></IconButton>
+          {userPopoverOpen && user && (
+            <UserSettingsPopover user={user} onClose={() => setUserPopoverOpen(false)} />
+          )}
         </div>
       </div>
       <ServerSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />

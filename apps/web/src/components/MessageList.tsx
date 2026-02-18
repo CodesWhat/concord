@@ -8,6 +8,7 @@ import ThreadIndicator from "./ThreadIndicator.js";
 import AttachmentPreview from "./AttachmentPreview.js";
 import EmptyState from "./EmptyState.js";
 import Markdown from "./Markdown.js";
+import CreateThreadModal from "./CreateThreadModal.js";
 import { getAvatarColor } from "../utils/colors.js";
 import { formatTime } from "../utils/format.js";
 
@@ -195,6 +196,9 @@ function MessageRow({
   const openThread = useThreadStore((s) => s.openThread);
   const createThread = useThreadStore((s) => s.createThread);
 
+  const [threadModalOpen, setThreadModalOpen] = useState(false);
+  const [threadDefaultName, setThreadDefaultName] = useState("");
+
   const isOwnMessage = userId === message.authorId;
   const isEditing = editingMessageId === message.id;
   const authorName = message.author?.displayName ?? "Unknown";
@@ -231,11 +235,14 @@ function MessageRow({
     setShowDeleteConfirm(false);
   };
 
-  const handleCreateThread = async () => {
+  const handleCreateThread = () => {
     if (!selectedChannelId) return;
-    const defaultName = message.content.slice(0, 50).trim() || "Thread";
-    const name = window.prompt("Thread name:", defaultName);
-    if (!name) return;
+    setThreadDefaultName(message.content.slice(0, 50).trim() || "Thread");
+    setThreadModalOpen(true);
+  };
+
+  const handleThreadCreate = async (name: string) => {
+    if (!selectedChannelId) return;
     const created = await createThread(selectedChannelId, message.id, name);
     if (created) {
       openThread(created.id);
@@ -275,12 +282,66 @@ function MessageRow({
     <ThreadIndicator thread={thread} onClick={handleOpenThread} />
   ) : null;
 
+  const threadModal = (
+    <CreateThreadModal
+      open={threadModalOpen}
+      onClose={() => setThreadModalOpen(false)}
+      defaultName={threadDefaultName}
+      onCreate={handleThreadCreate}
+    />
+  );
+
   if (grouped) {
     return (
-      <div className={`group relative flex items-start px-4 py-0.5 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
-        <div className="w-10 shrink-0 mr-4" />
-        <div className="min-w-0 flex-1 text-sm leading-relaxed text-text-primary">
-          {messageContent}
+      <>
+        <div className={`group relative flex items-start px-4 py-0.5 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
+          <div className="w-10 shrink-0 mr-4" />
+          <div className="min-w-0 flex-1 text-sm leading-relaxed text-text-primary">
+            {messageContent}
+            {attachmentBlock}
+            {threadIndicator}
+            {showDeleteConfirm && (
+              <DeleteConfirmation
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+              />
+            )}
+          </div>
+          {!isEditing && !showDeleteConfirm && (
+            <MessageActionBar
+              message={message}
+              isOwnMessage={isOwnMessage}
+              hasThread={!!thread}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onCreateThread={handleCreateThread}
+            />
+          )}
+        </div>
+        {threadModal}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className={`group relative flex items-start px-4 py-2 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
+        <div
+          className="mr-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+          style={{ backgroundColor: getAvatarColor(message.authorId).bg, color: getAvatarColor(message.authorId).text }}
+        >
+          {initial}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-semibold text-text-primary">
+              {authorName}
+            </span>
+            <span className="text-xs text-text-secondary">{formatTime(message.createdAt)}</span>
+          </div>
+          <div className="text-sm leading-relaxed text-text-primary">
+            {messageContent}
+          </div>
           {attachmentBlock}
           {threadIndicator}
           {showDeleteConfirm && (
@@ -301,47 +362,8 @@ function MessageRow({
           />
         )}
       </div>
-    );
-  }
-
-  return (
-    <div className={`group relative flex items-start px-4 py-2 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
-      <div
-        className="mr-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
-        style={{ backgroundColor: getAvatarColor(message.authorId).bg, color: getAvatarColor(message.authorId).text }}
-      >
-        {initial}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-text-primary">
-            {authorName}
-          </span>
-          <span className="text-xs text-text-secondary">{formatTime(message.createdAt)}</span>
-        </div>
-        <div className="text-sm leading-relaxed text-text-primary">
-          {messageContent}
-        </div>
-        {attachmentBlock}
-        {threadIndicator}
-        {showDeleteConfirm && (
-          <DeleteConfirmation
-            onConfirm={handleConfirmDelete}
-            onCancel={handleCancelDelete}
-          />
-        )}
-      </div>
-      {!isEditing && !showDeleteConfirm && (
-        <MessageActionBar
-          message={message}
-          isOwnMessage={isOwnMessage}
-          hasThread={!!thread}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onCreateThread={handleCreateThread}
-        />
-      )}
-    </div>
+      {threadModal}
+    </>
   );
 }
 

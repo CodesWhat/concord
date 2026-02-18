@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useServerStore } from "../stores/serverStore";
 import { useChannelStore } from "../stores/channelStore";
 import { useUnreadStore } from "../stores/unreadStore.js";
+import CreateServerModal from "./CreateServerModal";
 
 function ServerIcon({
   server,
@@ -70,12 +71,7 @@ export default function ServerRail() {
     fetchMembers(id);
   };
 
-  const handleAddServer = () => {
-    const name = window.prompt("Server name:");
-    if (name?.trim()) {
-      createServer(name.trim());
-    }
-  };
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   return (
     <nav className="hidden md:flex flex-col items-center w-[72px] min-w-[72px] bg-bg-deepest py-3 overflow-y-auto scrollbar-thin">
@@ -113,7 +109,7 @@ export default function ServerRail() {
       <div className="mt-auto flex flex-col items-center gap-1 pt-2">
         <RailDivider />
         <button
-          onClick={handleAddServer}
+          onClick={() => setCreateModalOpen(true)}
           className="flex h-12 w-12 items-center justify-center rounded-3xl bg-bg-elevated text-2xl text-green-500 transition-all duration-200 hover:rounded-[16px] hover:bg-green-500 hover:text-white focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
           title="Add a Server"
         >
@@ -126,6 +122,7 @@ export default function ServerRail() {
           <CompassIcon />
         </button>
       </div>
+      <CreateServerModal open={createModalOpen} onClose={() => setCreateModalOpen(false)} />
     </nav>
   );
 }
