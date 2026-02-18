@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useChannelStore } from "../stores/channelStore";
 import { useServerStore } from "../stores/serverStore";
 import { useMessageStore } from "../stores/messageStore";
 import { useAuthStore } from "../stores/authStore";
 import { usePresenceStore } from "../stores/presenceStore";
-import { api } from "../api/client.js";
+import { api, uploadMultipart } from "../api/client.js";
 import type { ChannelType } from "@concord/shared";
 import {
   HashIcon, SpeakerIcon, ForumIcon, ChevronIcon, ChevronDownIcon,
@@ -103,9 +103,17 @@ function IconButton({ children, title, onClick }: { children: React.ReactNode; t
   );
 }
 
-function UserSettingsPopover({ user, onClose }: { user: { name?: string; email?: string }; onClose: () => void }) {
+function UserSettingsPopover({ user, onClose }: { user: { id?: string; name?: string; email?: string; bio?: string; avatarUrl?: string | null }; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const logout = useAuthStore((s) => s.logout);
+  const updateProfile = useAuthStore((s) => s.updateProfile);
+  const [editing, setEditing] = useState(false);
+  const [displayName, setDisplayName] = useState(user.name ?? "");
+  const [bio, setBio] = useState(user.bio ?? "");
+  const [saving, setSaving] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -120,19 +128,147 @@ function UserSettingsPopover({ user, onClose }: { user: { name?: string; email?:
     window.location.href = "/auth/login";
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Preview
+    const reader = new FileReader();
+    reader.onload = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    // Upload
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const result = await uploadMultipart<{ avatarUrl: string }>("/api/v1/users/@me/avatar", formData);
+      updateProfile({ avatarUrl: result.avatarUrl });
+    } catch {
+      // revert preview on failure
+      setAvatarPreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    const trimmedName = displayName.trim();
+    const trimmedBio = bio.trim();
+    if (!trimmedName) return;
+    setSaving(true);
+    try {
+      await api.patch("/api/v1/users/@me", { displayName: trimmedName, bio: trimmedBio });
+      updateProfile({ name: trimmedName, bio: trimmedBio });
+      setEditing(false);
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const avatarSrc = avatarPreview ?? user.avatarUrl;
+
   return (
-    <div ref={ref} className="absolute bottom-full left-0 z-50 mb-2 w-56 rounded-lg bg-bg-elevated p-2 shadow-lg border border-border animate-scale-in">
-      <div className="px-2 py-1.5">
-        <div className="text-sm font-bold text-text-primary">{user.name ?? "Unknown"}</div>
-        <div className="text-xs text-text-muted">{user.email ?? ""}</div>
+    <div ref={ref} className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-lg bg-bg-elevated p-3 shadow-lg border border-border animate-scale-in">
+      {/* Avatar + Name header */}
+      <div className="flex items-center gap-3 mb-2">
+        <button
+          onClick={handleAvatarClick}
+          className="relative shrink-0 group focus-visible:ring-2 focus-visible:ring-primary/50 outline-none rounded-full"
+          title="Change avatar"
+        >
+          {avatarSrc ? (
+            <img src={avatarSrc} alt="Avatar" className="h-12 w-12 rounded-full object-cover" />
+          ) : (
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full text-base font-semibold"
+              style={{ backgroundColor: getAvatarColor(user.id ?? "").bg, color: getAvatarColor(user.id ?? "").text }}
+            >
+              {user.name?.charAt(0) ?? "?"}
+            </div>
+          )}
+          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </div>
+          {uploading && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            </div>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-bold text-text-primary truncate">{user.name ?? "Unknown"}</div>
+          <div className="text-xs text-text-muted truncate">{user.email ?? ""}</div>
+        </div>
       </div>
-      <div className="my-1 h-px bg-border" />
-      <button
-        onClick={handleLogout}
-        className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-red-400 hover:bg-bg-content focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
-      >
-        Log Out
-      </button>
+
+      <div className="h-px bg-border my-2" />
+
+      {editing ? (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Display Name</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value.slice(0, 64))}
+              className="w-full rounded-md bg-bg-deepest px-2.5 py-1.5 text-sm text-text-primary border border-border focus:border-primary focus:outline-none"
+            />
+            <span className="text-xs text-text-muted">{displayName.length}/64</span>
+          </div>
+          <div>
+            <label className="block text-xs text-text-muted mb-1">Bio</label>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value.slice(0, 500))}
+              rows={3}
+              placeholder="Tell us about yourself"
+              className="w-full rounded-md bg-bg-deepest px-2.5 py-1.5 text-sm text-text-primary placeholder-text-muted border border-border focus:border-primary focus:outline-none resize-none"
+            />
+            <span className="text-xs text-text-muted">{bio.length}/500</span>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => { setEditing(false); setDisplayName(user.name ?? ""); setBio(user.bio ?? ""); }}
+              className="rounded-md px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-content transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!displayName.trim() || saving}
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button
+            onClick={() => setEditing(true)}
+            className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-content focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
+          >
+            Edit Profile
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center rounded-md px-2 py-1.5 text-sm text-red-400 hover:bg-bg-content focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
+          >
+            Log Out
+          </button>
+        </>
+      )}
     </div>
   );
 }

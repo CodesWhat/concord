@@ -9,6 +9,7 @@ import AttachmentPreview from "./AttachmentPreview.js";
 import EmptyState from "./EmptyState.js";
 import Markdown from "./Markdown.js";
 import CreateThreadModal from "./CreateThreadModal.js";
+import UserProfileCard from "./UserProfileCard.js";
 import { getAvatarColor } from "../utils/colors.js";
 import { formatTime } from "../utils/format.js";
 
@@ -198,11 +199,17 @@ function MessageRow({
 
   const [threadModalOpen, setThreadModalOpen] = useState(false);
   const [threadDefaultName, setThreadDefaultName] = useState("");
+  const [profileAnchor, setProfileAnchor] = useState<DOMRect | null>(null);
 
   const isOwnMessage = userId === message.authorId;
   const isEditing = editingMessageId === message.id;
   const authorName = message.author?.displayName ?? "Unknown";
   const initial = authorName.charAt(0);
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setProfileAnchor((prev) => prev ? null : rect);
+  };
 
   const handleEdit = () => {
     setShowDeleteConfirm(false);
@@ -326,17 +333,18 @@ function MessageRow({
   return (
     <>
       <div className={`group relative flex items-start px-4 py-2 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
-        <div
-          className="mr-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold"
+        <button
+          onClick={handleAuthorClick}
+          className="mr-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
           style={{ backgroundColor: getAvatarColor(message.authorId).bg, color: getAvatarColor(message.authorId).text }}
         >
           {initial}
-        </div>
+        </button>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-text-primary">
+            <button onClick={handleAuthorClick} className="text-sm font-semibold text-text-primary hover:underline focus-visible:ring-2 focus-visible:ring-primary/50 outline-none">
               {authorName}
-            </span>
+            </button>
             <span className="text-xs text-text-secondary">{formatTime(message.createdAt)}</span>
           </div>
           <div className="text-sm leading-relaxed text-text-primary">
@@ -363,6 +371,13 @@ function MessageRow({
         )}
       </div>
       {threadModal}
+      {profileAnchor && (
+        <UserProfileCard
+          userId={message.authorId}
+          anchorRect={profileAnchor}
+          onClose={() => setProfileAnchor(null)}
+        />
+      )}
     </>
   );
 }

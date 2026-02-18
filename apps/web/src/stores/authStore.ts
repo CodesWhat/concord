@@ -7,6 +7,8 @@ interface User {
   email: string;
   name: string;
   image?: string | null;
+  bio?: string;
+  avatarUrl?: string | null;
 }
 
 interface AuthState {
@@ -22,6 +24,7 @@ interface AuthState {
   ) => Promise<boolean>;
   logout: () => Promise<void>;
   checkSession: () => Promise<void>;
+  updateProfile: (fields: Partial<Pick<User, "name" | "bio" | "avatarUrl">>) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -96,5 +99,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     } else {
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
+  },
+
+  updateProfile: (fields) => {
+    set((s) => ({
+      user: s.user ? { ...s.user, ...fields } : s.user,
+    }));
   },
 }));

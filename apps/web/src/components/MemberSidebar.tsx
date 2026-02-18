@@ -1,7 +1,9 @@
+import { useState, useCallback } from "react";
 import { useServerStore } from "../stores/serverStore";
 import { usePresenceStore } from "../stores/presenceStore";
 import type { UserStatus } from "@concord/shared";
 import StatusDot from "./StatusDot";
+import UserProfileCard from "./UserProfileCard.js";
 import { getAvatarColor } from "../utils/colors.js";
 
 interface MemberDisplay {
@@ -11,9 +13,17 @@ interface MemberDisplay {
   roleColor: string | null;
 }
 
-function MemberItem({ member }: { member: MemberDisplay }) {
+function MemberItem({ member, onClickMember }: { member: MemberDisplay; onClickMember: (userId: string, rect: DOMRect) => void }) {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    onClickMember(member.userId, rect);
+  };
+
   return (
-    <div className="group flex items-center gap-3 rounded-md border-l-2 border-transparent px-2 py-1.5 transition-colors duration-150 hover:border-primary hover:bg-bg-elevated">
+    <button
+      onClick={handleClick}
+      className="group flex w-full items-center gap-3 rounded-md border-l-2 border-transparent px-2 py-1.5 transition-colors duration-150 hover:border-primary hover:bg-bg-elevated text-left focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
+    >
       <div className="relative shrink-0">
         <div
           className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
@@ -34,7 +44,7 @@ function MemberItem({ member }: { member: MemberDisplay }) {
           {member.displayName}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -42,10 +52,12 @@ function MemberGroup({
   label,
   count,
   members: memberList,
+  onClickMember,
 }: {
   label: string;
   count: number;
   members: MemberDisplay[];
+  onClickMember: (userId: string, rect: DOMRect) => void;
 }) {
   return (
     <div className="mb-4">
@@ -54,7 +66,7 @@ function MemberGroup({
       </h3>
       <div className="flex flex-col gap-0.5">
         {memberList.map((m) => (
-          <MemberItem key={m.userId} member={m} />
+          <MemberItem key={m.userId} member={m} onClickMember={onClickMember} />
         ))}
       </div>
     </div>
@@ -64,6 +76,11 @@ function MemberGroup({
 export default function MemberSidebar() {
   const members = useServerStore((s) => s.members);
   const presenceStatuses = usePresenceStore((s) => s.statuses);
+  const [profileCard, setProfileCard] = useState<{ userId: string; rect: DOMRect } | null>(null);
+
+  const handleClickMember = useCallback((userId: string, rect: DOMRect) => {
+    setProfileCard((prev) => prev?.userId === userId ? null : { userId, rect });
+  }, []);
 
   const displayMembers: MemberDisplay[] = members.map((m) => ({
     userId: m.userId,
@@ -89,12 +106,19 @@ export default function MemberSidebar() {
     <aside className="hidden lg:flex h-full w-60 min-w-60 flex-col bg-bg-sidebar border-l border-border">
       <div className="flex-1 overflow-y-auto px-2 py-4 scrollbar-thin">
         {online.length > 0 && (
-          <MemberGroup label="Online" count={online.length} members={online} />
+          <MemberGroup label="Online" count={online.length} members={online} onClickMember={handleClickMember} />
         )}
         {offline.length > 0 && (
-          <MemberGroup label="Offline" count={offline.length} members={offline} />
+          <MemberGroup label="Offline" count={offline.length} members={offline} onClickMember={handleClickMember} />
         )}
       </div>
+      {profileCard && (
+        <UserProfileCard
+          userId={profileCard.userId}
+          anchorRect={profileCard.rect}
+          onClose={() => setProfileCard(null)}
+        />
+      )}
     </aside>
   );
 }
