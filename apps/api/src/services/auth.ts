@@ -13,10 +13,10 @@ export const auth = betterAuth({
     provider: "pg",
     schema: authSchema,
   }),
-  baseURL: `http://localhost:${config.port}`,
-  secret: process.env["JWT_SECRET"] ?? "dev-secret-change-in-production",
+  baseURL: process.env.AUTH_BASE_URL ?? `http://localhost:${config.port}`,
+  secret: process.env.AUTH_SECRET ?? (config.isDev ? "dev-secret-change-in-production" : (() => { throw new Error("AUTH_SECRET required in production"); })()),
   emailAndPassword: {
     enabled: true,
   },
-  trustedOrigins: ["http://localhost:5173"],
+  trustedOrigins: process.env.TRUSTED_ORIGINS ? process.env.TRUSTED_ORIGINS.split(",") : ["http://localhost:5173"],
 });

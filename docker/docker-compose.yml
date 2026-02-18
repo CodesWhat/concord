@@ -6,6 +6,10 @@ services:
     environment:
       DATABASE_URL: postgres://concord:concord@postgres:5432/concord
       REDIS_URL: redis://redis:6379
+      AUTH_SECRET: change-me-in-production
+      AUTH_BASE_URL: http://concord-api:3000
+      CORS_ORIGIN: http://localhost:8080
+      TRUSTED_ORIGINS: http://localhost:8080
       LIVEKIT_URL: ws://livekit:7880
       LIVEKIT_API_KEY: devkey
       LIVEKIT_API_SECRET: devsecret
@@ -17,8 +21,10 @@ services:
       - "3000:3000"
       - "3001:3001"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   concord-web:
     build:
@@ -37,11 +43,21 @@ services:
       - pg_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U concord"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   livekit:
     image: livekit/livekit-server:latest
