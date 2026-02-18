@@ -35,3 +35,14 @@ coverage/
 
 # Docker
 docker/**/data/
+
+# Planning & design artifacts
+.planning/
+concord-cloud/
+
+# Tool artifacts
+.playwright-mcp/
+.claude/
+
+# Cloud app (WIP, not ready for public)
+apps/cloud/
