@@ -26,7 +26,7 @@ export default async function forumRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const limit = request.query.limit ? parseInt(request.query.limit, 10) : 25;
-      const result = await forumService.getPosts(request.params.channelId, {
+      const result = await forumService.getPosts(request.params.channelId, request.userId, {
         sort: request.query.sort,
         before: request.query.before,
         limit,
@@ -41,7 +41,7 @@ export default async function forumRoutes(app: FastifyInstance) {
   // POST /channels/:channelId/posts — Create a new post
   app.post<{
     Params: { channelId: string };
-    Body: { title: string; content: string; tags?: string[] };
+    Body: { title: string; content?: string; tags?: string[] };
   }>(
     "/channels/:channelId/posts",
     {
@@ -52,13 +52,10 @@ export default async function forumRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { title, content, tags } = request.body;
-      if (!content || content.trim().length === 0) {
-        return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "Post content is required", status: 400 } });
-      }
       const result = await forumService.createPost(
         request.params.channelId,
         request.userId,
-        { title, content, tags },
+        { title, content: content ?? "", tags },
       );
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });
@@ -78,7 +75,7 @@ export default async function forumRoutes(app: FastifyInstance) {
     "/posts/:postId",
     { preHandler: [requireAuth] },
     async (request, reply) => {
-      const result = await forumService.getPost(request.params.postId);
+      const result = await forumService.getPost(request.params.postId, request.userId);
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }

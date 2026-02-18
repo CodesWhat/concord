@@ -22,7 +22,7 @@ export interface ForumPost {
   tags: string[];
   createdAt: string;
   author: ForumPostAuthor;
-  userVote?: number;
+  userVote?: number | null;
 }
 
 export interface ForumComment {
@@ -130,16 +130,16 @@ export const useForumStore = create<ForumState>((set, get) => ({
         `/api/v1/posts/${postId}/comments`,
         { content },
       );
-      set((s) => ({ comments: [...s.comments, comment] }));
-      // Increment comment count on the selected post
-      set((s) => {
-        if (s.selectedPost && s.selectedPost.id === postId) {
-          return {
-            selectedPost: { ...s.selectedPost, commentCount: s.selectedPost.commentCount + 1 },
-          };
-        }
-        return {};
-      });
+      set((s) => ({
+        comments: [...s.comments, comment],
+        selectedPost:
+          s.selectedPost?.id === postId
+            ? { ...s.selectedPost, commentCount: s.selectedPost.commentCount + 1 }
+            : s.selectedPost,
+        posts: s.posts.map((p) =>
+          p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p,
+        ),
+      }));
     } catch {
       // ignore
     }
@@ -147,7 +147,7 @@ export const useForumStore = create<ForumState>((set, get) => ({
 
   vote: async (postId: string, value: number) => {
     try {
-      const result = await api.post<{ upvotes: number; downvotes: number; score: number; userVote: number }>(
+      const result = await api.post<{ upvotes: number; downvotes: number; score: number; userVote: number | null }>(
         `/api/v1/posts/${postId}/vote`,
         { value },
       );

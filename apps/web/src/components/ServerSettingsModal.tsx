@@ -30,7 +30,7 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
 
   // Channel creation
   const [newChannelName, setNewChannelName] = useState("");
-  const [newChannelType, setNewChannelType] = useState<"text" | "voice" | "announcement">("text");
+  const [newChannelType, setNewChannelType] = useState<"text" | "voice" | "announcement" | "forum">("text");
 
   // Channel permissions editor
   const [permEditorChannel, setPermEditorChannel] = useState<{ id: string; permissionOverrides: Record<string, { allow: number; deny: number }> } | null>(null);
@@ -230,7 +230,7 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                   />
                   <select
                     value={newChannelType}
-                    onChange={(e) => setNewChannelType(e.target.value as "text" | "voice" | "announcement")}
+                    onChange={(e) => setNewChannelType(e.target.value as "text" | "voice" | "announcement" | "forum")}
                     className="appearance-none cursor-pointer rounded-lg bg-bg-deepest px-2 py-2 pr-8 text-sm text-text-primary outline-none"
                     style={{
                       backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A1A1AA' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
@@ -242,6 +242,7 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                     <option value="text">Text</option>
                     <option value="voice">Voice</option>
                     <option value="announcement">Announce</option>
+                    <option value="forum">Forum</option>
                   </select>
                   <button
                     onClick={handleCreateChannel}

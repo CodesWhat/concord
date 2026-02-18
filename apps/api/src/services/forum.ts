@@ -84,10 +84,15 @@ export async function createPost(
   };
 }
 
+interface ForumPostWithAuthorAndVote extends ForumPostWithAuthor {
+  userVote: number | null;
+}
+
 export async function getPosts(
   channelId: string,
+  userId: string | null,
   options: { sort?: string; before?: string; limit?: number },
-): Promise<ServiceResult<ForumPostWithAuthor[]>> {
+): Promise<ServiceResult<ForumPostWithAuthorAndVote[]>> {
   const safeLimit = Math.min(Math.max(options.limit ?? 25, 1), 50);
   const sort = options.sort ?? "hot";
 
@@ -109,7 +114,7 @@ export async function getPosts(
       break;
   }
 
-  const result = await db
+  const query = db
     .select({
       id: forumPosts.id,
       channelId: forumPosts.channelId,
@@ -127,6 +132,9 @@ export async function getPosts(
       username: users.username,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
+      userVote: userId
+        ? sql<number | null>`(SELECT value FROM forum_votes WHERE post_id = ${forumPosts.id} AND user_id = ${userId})`
+        : sql<null>`NULL`,
     })
     .from(forumPosts)
     .innerJoin(users, eq(forumPosts.authorId, users.id))
@@ -134,7 +142,9 @@ export async function getPosts(
     .orderBy(...orderBy)
     .limit(safeLimit);
 
-  const mapped: ForumPostWithAuthor[] = result.map((r) => ({
+  const result = await query;
+
+  const mapped: ForumPostWithAuthorAndVote[] = result.map((r) => ({
     id: r.id.toString(),
     channelId: r.channelId,
     authorId: r.authorId,
@@ -153,6 +163,7 @@ export async function getPosts(
       displayName: r.displayName,
       avatarUrl: r.avatarUrl,
     },
+    userVote: r.userVote ?? null,
   }));
 
   return { data: mapped, error: null };
@@ -160,7 +171,8 @@ export async function getPosts(
 
 export async function getPost(
   postId: string,
-): Promise<ServiceResult<ForumPostWithAuthor>> {
+  userId?: string | null,
+): Promise<ServiceResult<ForumPostWithAuthorAndVote>> {
   const result = await db
     .select({
       id: forumPosts.id,
@@ -179,6 +191,9 @@ export async function getPost(
       username: users.username,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
+      userVote: userId
+        ? sql<number | null>`(SELECT value FROM forum_votes WHERE post_id = ${forumPosts.id} AND user_id = ${userId})`
+        : sql<null>`NULL`,
     })
     .from(forumPosts)
     .innerJoin(users, eq(forumPosts.authorId, users.id))
@@ -210,6 +225,7 @@ export async function getPost(
         displayName: r.displayName,
         avatarUrl: r.avatarUrl,
       },
+      userVote: r.userVote ?? null,
     },
     error: null,
   };
@@ -219,7 +235,7 @@ export async function updatePost(
   postId: string,
   authorId: string,
   updates: { title?: string; content?: string; tags?: string[]; pinned?: boolean; locked?: boolean },
-): Promise<ServiceResult<ForumPostWithAuthor>> {
+): Promise<ServiceResult<ForumPostWithAuthorAndVote>> {
   const existing = await db
     .select()
     .from(forumPosts)
@@ -251,7 +267,7 @@ export async function updatePost(
   if (updates.locked !== undefined) setValues["locked"] = updates.locked;
 
   if (Object.keys(setValues).length === 0) {
-    return getPost(postId);
+    return getPost(postId, authorId);
   }
 
   await db
@@ -259,7 +275,7 @@ export async function updatePost(
     .set(setValues)
     .where(eq(forumPosts.id, BigInt(postId)));
 
-  return getPost(postId);
+  return getPost(postId, authorId);
 }
 
 export async function deletePost(
