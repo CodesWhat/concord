@@ -7,6 +7,7 @@ export interface User {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  bio: string;
   status: UserStatus;
   createdAt: string;
   flags: number;
@@ -125,3 +126,135 @@ export interface ForumPost {
 export type ServiceResult<T> =
   | { data: T; error: null }
   | { data: null; error: AppError };
+
+// --- Cloud Community Types ---
+
+export interface PublicCommunity {
+  serverId: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  tags: string[];
+  bannerUrl: string | null;
+  subscriberCount: number;
+  iconUrl: string | null;
+  createdAt: string;
+}
+
+export interface PublicCommunityDetail extends PublicCommunity {
+  isPublic: boolean;
+  forumChannelId: string;
+  rules: { title: string; body: string }[];
+  owner: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+  moderators: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  }[];
+}
+
+export interface CommunityWithChannel extends PublicCommunity {
+  forumChannelId: string;
+  rules: { title: string; body: string }[];
+}
+
+export interface PublicForumPost {
+  id: string;
+  title: string;
+  content: string;
+  upvotes: number;
+  downvotes: number;
+  score: number;
+  pinned: boolean;
+  locked: boolean;
+  commentCount: number;
+  tags: string[];
+  createdAt: string;
+  author: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+  community: {
+    slug: string;
+    name: string;
+  };
+}
+
+export interface PublicTrendingPost extends PublicForumPost {
+  community: {
+    slug: string;
+    name: string;
+    iconUrl: string | null;
+  };
+}
+
+export interface PublicPostDetail {
+  post: PublicTrendingPost;
+  comments: PaginatedResponse<PublicComment>;
+}
+
+export interface PublicComment {
+  id: string;
+  content: string;
+  authorId: string;
+  replyToId: string | null;
+  createdAt: string;
+  author: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+  replies: PublicComment[];
+  hasMoreReplies?: boolean;
+}
+
+export interface FeedPost extends PublicTrendingPost {
+  userVote: number | null;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+export interface SearchResults {
+  communities: PublicCommunity[];
+  posts: PaginatedResponse<SearchPostResult>;
+}
+
+export interface SearchPostResult {
+  id: string;
+  title: string;
+  excerpt: string;
+  snippet: string;
+  score: number;
+  commentCount: number;
+  createdAt: string;
+  author: {
+    username: string;
+    displayName: string;
+  };
+  community: {
+    slug: string;
+    name: string;
+  };
+  relevanceScore: number;
+}
+
+export interface SEOMetadata {
+  title: string;
+  description: string;
+  image: string | null;
+  url: string;
+  type: "website" | "article";
+  author?: string;
+  publishedTime?: string;
+  section?: string;
+  subscriberCount?: number;
+}

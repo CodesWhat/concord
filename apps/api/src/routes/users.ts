@@ -1,10 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
+import path from "node:path";
 import { db } from "../db.js";
 import { users, serverMembers, servers } from "../models/schema.js";
 import { requireAuth } from "../middleware/permissions.js";
 import { auth } from "../services/auth.js";
 import { dispatchToServer, GatewayEvent } from "../gateway/index.js";
+import { uploadFile, getFileUrl } from "../services/s3.js";
 
 export default async function userRoutes(app: FastifyInstance) {
   // POST /sync — Create app user record matching Better Auth user.
@@ -52,7 +54,10 @@ export default async function userRoutes(app: FastifyInstance) {
         username: users.username,
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
+        bio: users.bio,
         status: users.status,
+        createdAt: users.createdAt,
+        flags: users.flags,
       })
       .from(users)
       .where(eq(users.id, request.userId))
@@ -66,13 +71,19 @@ export default async function userRoutes(app: FastifyInstance) {
   });
 
   // PATCH /@me — Update current user profile
-  app.patch<{ Body: { displayName?: string; avatarUrl?: string; status?: string } }>(
+  app.patch<{ Body: { displayName?: string; avatarUrl?: string; status?: string; bio?: string } }>(
     "/@me",
     { preHandler: [requireAuth] },
     async (request, reply) => {
       const updates: Record<string, unknown> = {};
       if (request.body.displayName !== undefined) updates.displayName = request.body.displayName.trim();
       if (request.body.avatarUrl !== undefined) updates.avatarUrl = request.body.avatarUrl;
+      if (request.body.bio !== undefined) {
+        if (request.body.bio.length > 500) {
+          return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "Bio must be 500 characters or fewer", status: 400 } });
+        }
+        updates.bio = request.body.bio;
+      }
       if (request.body.status !== undefined) {
         const validStatuses = ["online", "idle", "dnd", "offline"];
         if (!validStatuses.includes(request.body.status)) {
@@ -108,7 +119,99 @@ export default async function userRoutes(app: FastifyInstance) {
           username: users.username,
           displayName: users.displayName,
           avatarUrl: users.avatarUrl,
+          bio: users.bio,
           status: users.status,
+          createdAt: users.createdAt,
+          flags: users.flags,
+        })
+        .from(users)
+        .where(eq(users.id, request.userId))
+        .limit(1);
+
+      return updated;
+    },
+  );
+
+  // GET /:userId — Public user profile (no email/passwordHash)
+  app.get<{ Params: { userId: string } }>(
+    "/:userId",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const result = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          bio: users.bio,
+          status: users.status,
+          createdAt: users.createdAt,
+          flags: users.flags,
+        })
+        .from(users)
+        .where(eq(users.id, request.params.userId))
+        .limit(1);
+
+      if (result.length === 0) {
+        return reply.code(404).send({ error: { code: "NOT_FOUND", message: "User not found", status: 404 } });
+      }
+
+      return result[0];
+    },
+  );
+
+  // POST /@me/avatar — Upload avatar image
+  app.post(
+    "/@me/avatar",
+    { preHandler: [requireAuth] },
+    async (request, reply) => {
+      const file = await request.file();
+
+      if (!file) {
+        return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "No file provided", status: 400 } });
+      }
+
+      if (!file.mimetype.startsWith("image/")) {
+        return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "Only image files are allowed", status: 400 } });
+      }
+
+      const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5 MB
+      const chunks: Buffer[] = [];
+      let size = 0;
+      for await (const chunk of file.file) {
+        size += chunk.length;
+        if (size > MAX_AVATAR_SIZE) {
+          return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "File exceeds 5 MB limit", status: 400 } });
+        }
+        chunks.push(chunk);
+      }
+
+      if (file.file.truncated) {
+        return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "File exceeds 5 MB limit", status: 400 } });
+      }
+
+      const buffer = Buffer.concat(chunks);
+      const ext = path.extname(file.filename) || ".png";
+      const key = `avatars/${request.userId}${ext}`;
+
+      await uploadFile(key, buffer, file.mimetype, buffer.length);
+      const avatarUrl = await getFileUrl(key);
+
+      await db
+        .update(users)
+        .set({ avatarUrl })
+        .where(eq(users.id, request.userId));
+
+      const [updated] = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          bio: users.bio,
+          status: users.status,
+          createdAt: users.createdAt,
+          flags: users.flags,
         })
         .from(users)
         .where(eq(users.id, request.userId))

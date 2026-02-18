@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   username: varchar("username", { length: 32 }).unique().notNull(),
   displayName: varchar("display_name", { length: 64 }).notNull(),
   avatarUrl: text("avatar_url"),
+  bio: text("bio").default("").notNull(),
   email: varchar("email", { length: 255 }).unique().notNull(),
   passwordHash: text("password_hash").notNull(),
   status: userStatusEnum("status").default("offline").notNull(),

@@ -23,3 +23,5 @@ export {
   forumVotes,
   forumVotesRelations,
 } from "./forum-posts.js";
+export { communities, communitiesRelations } from "./communities.js";
+export { subscriptions, subscriptionsRelations } from "./subscriptions.js";
