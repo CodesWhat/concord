@@ -8,6 +8,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
+    "lint": "eslint src/",
     "seed": "tsx src/seed.ts",
     "db:generate": "NODE_OPTIONS='--import ./bigint-patch.mjs --import tsx' drizzle-kit generate",
     "db:migrate": "NODE_OPTIONS='--import ./bigint-patch.mjs --import tsx' drizzle-kit migrate",

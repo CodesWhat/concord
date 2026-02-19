@@ -54,8 +54,8 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
     try {
       await api.patch(`/api/v1/servers/${selectedServerId}`, { name: name.trim(), description: description.trim() });
       await fetchServers();
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[ServerSettingsModal] handleSave failed:", err);
     } finally {
       setSaving(false);
     }
@@ -66,8 +66,8 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
       await api.delete(`/api/v1/servers/${selectedServerId}`);
       await fetchServers();
       onClose();
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[ServerSettingsModal] handleDelete failed:", err);
     }
   };
 
@@ -80,8 +80,8 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
       });
       setNewChannelName("");
       await fetchChannels(selectedServerId);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[ServerSettingsModal] handleCreateChannel failed:", err);
     }
   };
 
@@ -89,8 +89,8 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
     try {
       await api.delete(`/api/v1/channels/${channelId}`);
       await fetchChannels(selectedServerId);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[ServerSettingsModal] handleDeleteChannel failed:", err);
     }
   };
 
@@ -216,8 +216,8 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                           try {
                             await leaveServer(selectedServerId);
                             onClose();
-                          } catch {
-                            // ignore
+                          } catch (err) {
+                            console.error("[ServerSettingsModal] leaveServer failed:", err);
                           }
                         }}
                         className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-500"

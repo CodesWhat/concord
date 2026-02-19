@@ -69,7 +69,8 @@ export const useForumStore = create<ForumState>((set, get) => ({
         `/api/v1/channels/${channelId}/posts?sort=${sortBy}&limit=25`,
       );
       set({ posts, isLoading: false, hasMore: posts.length >= 25 });
-    } catch {
+    } catch (err) {
+      console.warn("[forumStore] fetchPosts failed:", err);
       set({ isLoading: false });
     }
   },
@@ -91,7 +92,8 @@ export const useForumStore = create<ForumState>((set, get) => ({
         isLoading: false,
         hasMore: more.length >= 25,
       });
-    } catch {
+    } catch (err) {
+      console.warn("[forumStore] loadMorePosts failed:", err);
       set({ isLoading: false });
     }
   },
@@ -104,7 +106,8 @@ export const useForumStore = create<ForumState>((set, get) => ({
       );
       set((s) => ({ posts: [post, ...s.posts] }));
       return post;
-    } catch {
+    } catch (err) {
+      console.error("[forumStore] createPost failed:", err);
       return null;
     }
   },
@@ -119,7 +122,8 @@ export const useForumStore = create<ForumState>((set, get) => ({
         `/api/v1/posts/${postId}/comments?limit=25`,
       );
       set({ comments });
-    } catch {
+    } catch (err) {
+      console.warn("[forumStore] fetchComments failed:", err);
       set({ comments: [] });
     }
   },
@@ -140,8 +144,8 @@ export const useForumStore = create<ForumState>((set, get) => ({
           p.id === postId ? { ...p, commentCount: p.commentCount + 1 } : p,
         ),
       }));
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[forumStore] createComment failed:", err);
     }
   },
 
@@ -162,8 +166,8 @@ export const useForumStore = create<ForumState>((set, get) => ({
         posts: s.posts.map((p) => (p.id === postId ? update(p) : p)),
         selectedPost: s.selectedPost?.id === postId ? update(s.selectedPost) : s.selectedPost,
       }));
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[forumStore] vote failed:", err);
     }
   },
 

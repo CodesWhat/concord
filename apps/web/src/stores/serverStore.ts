@@ -80,7 +80,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
     try {
       const servers = await api.get<Server[]>("/api/v1/users/@me/servers");
       set({ servers, isLoading: false });
-    } catch {
+    } catch (err) {
+      console.warn("[serverStore] fetchServers failed:", err);
       set({ isLoading: false });
     }
   },
@@ -95,8 +96,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
         `/api/v1/servers/${serverId}/members`,
       );
       set({ members });
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn("[serverStore] fetchMembers failed:", err);
     }
   },
 
@@ -107,8 +108,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
         servers: [...s.servers, server],
         selectedServerId: server.id,
       }));
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[serverStore] createServer failed:", err);
     }
   },
 
@@ -116,8 +117,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
     try {
       const roles = await api.get<Role[]>(`/api/v1/servers/${serverId}/roles`);
       set({ roles });
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn("[serverStore] fetchRoles failed:", err);
     }
   },
 
@@ -126,7 +127,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
       const role = await api.post<Role>(`/api/v1/servers/${serverId}/roles`, { name });
       set((s) => ({ roles: [role, ...s.roles] }));
       return role;
-    } catch {
+    } catch (err) {
+      console.error("[serverStore] createRole failed:", err);
       return null;
     }
   },
@@ -135,8 +137,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
     try {
       const role = await api.patch<Role>(`/api/v1/servers/${serverId}/roles/${roleId}`, updates);
       set((s) => ({ roles: s.roles.map((r) => (r.id === roleId ? role : r)) }));
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[serverStore] updateRole failed:", err);
     }
   },
 
@@ -144,24 +146,24 @@ export const useServerStore = create<ServerState>((set, get) => ({
     try {
       await api.delete(`/api/v1/servers/${serverId}/roles/${roleId}`);
       set((s) => ({ roles: s.roles.filter((r) => r.id !== roleId) }));
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[serverStore] deleteRole failed:", err);
     }
   },
 
   assignRole: async (serverId: string, userId: string, roleId: string) => {
     try {
       await api.put(`/api/v1/servers/${serverId}/members/${userId}/roles/${roleId}`);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[serverStore] assignRole failed:", err);
     }
   },
 
   removeRole: async (serverId: string, userId: string, roleId: string) => {
     try {
       await api.delete(`/api/v1/servers/${serverId}/members/${userId}/roles/${roleId}`);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error("[serverStore] removeRole failed:", err);
     }
   },
 
@@ -178,7 +180,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
       await api.post(`/api/v1/servers/${serverId}/members/${memberId}/kick`);
       set((s) => ({ members: s.members.filter((m) => m.userId !== memberId) }));
       return true;
-    } catch {
+    } catch (err) {
+      console.error("[serverStore] kickMember failed:", err);
       return false;
     }
   },
@@ -188,7 +191,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
       await api.post(`/api/v1/servers/${serverId}/members/${memberId}/ban`, { reason });
       set((s) => ({ members: s.members.filter((m) => m.userId !== memberId) }));
       return true;
-    } catch {
+    } catch (err) {
+      console.error("[serverStore] banMember failed:", err);
       return false;
     }
   },
@@ -198,7 +202,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
       await api.delete(`/api/v1/servers/${serverId}/bans/${userId}`);
       set((s) => ({ bans: s.bans.filter((b) => b.userId !== userId) }));
       return true;
-    } catch {
+    } catch (err) {
+      console.error("[serverStore] unbanMember failed:", err);
       return false;
     }
   },
@@ -207,8 +212,8 @@ export const useServerStore = create<ServerState>((set, get) => ({
     try {
       const bans = await api.get<Ban[]>(`/api/v1/servers/${serverId}/bans`);
       set({ bans });
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn("[serverStore] fetchBans failed:", err);
     }
   },
 }));

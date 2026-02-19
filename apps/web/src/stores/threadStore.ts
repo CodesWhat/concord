@@ -69,8 +69,8 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
         `/api/v1/channels/${channelId}/threads`,
       );
       set({ threads });
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.warn("[threadStore] fetchChannelThreads failed:", err);
     }
   },
 
@@ -81,7 +81,8 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
         `/api/v1/threads/${threadId}/messages?limit=100`,
       );
       set({ threadMessages: messages, isLoading: false });
-    } catch {
+    } catch (err) {
+      console.warn("[threadStore] fetchThreadMessages failed:", err);
       set({ isLoading: false });
     }
   },
@@ -94,7 +95,8 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       );
       set((s) => ({ threads: [...s.threads, thread] }));
       return thread;
-    } catch {
+    } catch (err) {
+      console.error("[threadStore] createThread failed:", err);
       return null;
     }
   },
@@ -105,8 +107,8 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
         content,
         ...(replyToId ? { replyToId } : {}),
       });
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error("[threadStore] sendThreadMessage failed:", err);
     }
   },
 

@@ -67,8 +67,9 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         embeds: [],
         threadId: null,
       }))).catch(() => {});
-    } catch {
+    } catch (err) {
       // Fallback to cached messages when offline
+      console.warn("[messageStore] fetchMessages failed, trying cache:", err);
       try {
         const cached = await getCachedMessages(channelId);
         if (cached.length > 0) {
@@ -115,7 +116,8 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         isLoading: false,
         hasMore: older.length >= 50,
       });
-    } catch {
+    } catch (err) {
+      console.warn("[messageStore] loadMoreMessages failed:", err);
       set({ isLoading: false });
     }
   },
@@ -161,7 +163,8 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         messages: [...s.messages, msg],
         isSending: false,
       }));
-    } catch {
+    } catch (err) {
+      console.error("[messageStore] sendMessage failed:", err);
       set({ isSending: false });
     }
   },
@@ -210,7 +213,8 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       set((s) => ({
         messages: s.messages.map((m) => (m.id === updated.id ? updated : m)),
       }));
-    } catch {
+    } catch (err) {
+      console.error("[messageStore] editMessage failed:", err);
       // Refetch to restore correct state on failure
       get().fetchMessages(channelId);
     }
@@ -224,7 +228,8 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     }));
     try {
       await api.delete(`/api/v1/channels/${channelId}/messages/${messageId}`);
-    } catch {
+    } catch (err) {
+      console.error("[messageStore] deleteMessage failed:", err);
       // Restore on failure
       set({ messages: previous });
     }
