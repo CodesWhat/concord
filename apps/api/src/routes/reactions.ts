@@ -78,7 +78,16 @@ export default async function reactionRoutes(app: FastifyInstance) {
   app.delete<{ Params: { channelId: string; messageId: string; emoji: string } }>(
     "/channels/:channelId/messages/:messageId/reactions/:emoji",
     {
-      preHandler: [requireAuth],
+      config: {
+        rateLimit: {
+          max: 20,
+          timeWindow: "1 minute",
+        },
+      },
+      preHandler: [
+        requireAuth,
+        requireChannelPermission(Permissions.READ_MESSAGES),
+      ],
     },
     async (request, reply) => {
       const { channelId, messageId, emoji } = request.params;
