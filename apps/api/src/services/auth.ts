@@ -17,6 +17,10 @@ export const auth = betterAuth({
   secret: process.env.AUTH_SECRET ?? (config.isDev ? "dev-secret-change-in-production" : (() => { throw new Error("AUTH_SECRET required in production"); })()),
   emailAndPassword: {
     enabled: true,
+    sendResetPassword: async ({ user, url }) => {
+      console.log(`[AUTH] Password reset requested for ${user.email}: ${url}`);
+      // TODO: Add SMTP transport for production email delivery
+    },
   },
   trustedOrigins: process.env.TRUSTED_ORIGINS ? process.env.TRUSTED_ORIGINS.split(",") : ["http://localhost:5173"],
 });
