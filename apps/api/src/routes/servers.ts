@@ -10,12 +10,21 @@ import { Permissions } from "@concord/shared";
 import { eq } from "drizzle-orm";
 import { db } from "../db.js";
 import { servers } from "../models/schema.js";
+import { dispatchToServer, GatewayEvent } from "../gateway/index.js";
 
 export default async function serverRoutes(app: FastifyInstance) {
   // POST / — Create server
   app.post<{ Body: { name: string; description?: string } }>(
     "/",
-    { preHandler: [requireAuth] },
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: "1 minute",
+        },
+      },
+      preHandler: [requireAuth],
+    },
     async (request, reply) => {
       const { name, description } = request.body;
       if (!name || name.trim().length === 0) {
@@ -110,6 +119,29 @@ export default async function serverRoutes(app: FastifyInstance) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }
       return result.data;
+    },
+  );
+
+  // DELETE /:id/members/@me — Leave server
+  app.delete<{ Params: { id: string } }>(
+    "/:id/members/@me",
+    {
+      preHandler: [
+        requireAuth,
+        requireMember((req) => (req.params as { id: string }).id),
+      ],
+    },
+    async (request, reply) => {
+      const serverId = request.params.id;
+      const result = await serverService.leaveServer(serverId, request.userId);
+      if (result.error) {
+        return reply.code(result.error.statusCode).send({ error: result.error });
+      }
+      dispatchToServer(serverId, GatewayEvent.MEMBER_LEAVE, {
+        userId: request.userId,
+        serverId,
+      });
+      return reply.code(204).send();
     },
   );
 

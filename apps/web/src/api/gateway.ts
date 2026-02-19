@@ -2,6 +2,8 @@ import { useMessageStore, type Message } from "../stores/messageStore.js";
 import { usePresenceStore } from "../stores/presenceStore.js";
 import { useTypingStore } from "../stores/typingStore.js";
 import { useChannelStore } from "../stores/channelStore.js";
+import { useServerStore } from "../stores/serverStore.js";
+import { useAuthStore } from "../stores/authStore.js";
 import { useUnreadStore } from "../stores/unreadStore.js";
 import { useThreadStore, type Thread, type ThreadMessage } from "../stores/threadStore.js";
 import { offlineSync } from "../utils/offlineSync.js";
@@ -142,6 +144,26 @@ class WebSocketClient {
             },
           );
         break;
+      case "MEMBER_LEAVE": {
+        const leaveUserId = (data as { userId: string }).userId;
+        const leaveServerId = (data as { serverId: string }).serverId;
+        const currentUserId = useAuthStore.getState().user?.id;
+        if (leaveUserId === currentUserId) {
+          // Remove the server from local state
+          const store = useServerStore.getState();
+          useServerStore.setState({
+            servers: store.servers.filter((s) => s.id !== leaveServerId),
+            selectedServerId: store.selectedServerId === leaveServerId ? null : store.selectedServerId,
+          });
+        } else {
+          // Another member left — refresh the member list if we're viewing that server
+          const selectedServerId = useServerStore.getState().selectedServerId;
+          if (selectedServerId === leaveServerId) {
+            useServerStore.getState().fetchMembers(leaveServerId);
+          }
+        }
+        break;
+      }
       case "THREAD_CREATE":
         useThreadStore.getState().addThread(data as unknown as Thread);
         break;

@@ -243,6 +243,36 @@ export async function getServerMembers(
   return { data: result, error: null };
 }
 
+export async function leaveServer(
+  serverId: string,
+  userId: string,
+): Promise<ServiceResult<void>> {
+  // Check if user is the server owner
+  const server = await db
+    .select({ ownerId: servers.ownerId })
+    .from(servers)
+    .where(eq(servers.id, serverId))
+    .limit(1);
+
+  if (server.length === 0) {
+    return { data: null, error: { code: "NOT_FOUND", message: "Server not found", statusCode: 404 } };
+  }
+
+  if (server[0]!.ownerId === userId) {
+    return { data: null, error: { code: "FORBIDDEN", message: "Server owner cannot leave. Transfer ownership or delete the server.", statusCode: 403 } };
+  }
+
+  // Delete member roles then membership
+  await db.delete(memberRoles).where(
+    and(eq(memberRoles.userId, userId), eq(memberRoles.serverId, serverId)),
+  );
+  await db.delete(serverMembers).where(
+    and(eq(serverMembers.userId, userId), eq(serverMembers.serverId, serverId)),
+  );
+
+  return { data: undefined, error: null };
+}
+
 export async function joinServer(
   userId: string,
   serverId: string,
