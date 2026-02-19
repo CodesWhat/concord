@@ -8,6 +8,12 @@ export default async function dmRoutes(app: FastifyInstance) {
   app.post<{ Body: { recipientId: string } }>(
     "/dms",
     {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: "1 minute",
+        },
+      },
       preHandler: [requireAuth],
     },
     async (request, reply) => {

@@ -48,51 +48,64 @@ export async function getOrCreateDmChannel(
   userId2: string,
 ): Promise<ServiceResult<{ id: string }>> {
   try {
-    // Find dm channels where user1 is a participant
-    const user1Channels = await db
-      .select({ dmChannelId: dmParticipants.dmChannelId })
-      .from(dmParticipants)
-      .where(eq(dmParticipants.userId, userId1));
-
-    if (user1Channels.length > 0) {
-      const channelIds = user1Channels.map((r) => r.dmChannelId);
-      // Among those, find one where user2 is also a participant
-      const sharedChannels = await db
-        .select({ dmChannelId: dmParticipants.dmChannelId })
-        .from(dmParticipants)
-        .where(
-          and(
-            inArray(dmParticipants.dmChannelId, channelIds),
-            eq(dmParticipants.userId, userId2),
-          ),
-        )
+    const result = await db.transaction(async (tx) => {
+      // Verify recipient exists
+      const recipientExists = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.id, userId2))
         .limit(1);
 
-      if (sharedChannels.length > 0 && sharedChannels[0]) {
-        return { data: { id: sharedChannels[0].dmChannelId }, error: null };
+      if (recipientExists.length === 0) {
+        return { data: null, error: { code: "NOT_FOUND", message: "Recipient user not found", statusCode: 404 } as const };
       }
-    }
 
-    // Create a new DM channel
-    const [channel] = await db
-      .insert(dmChannels)
-      .values({})
-      .returning({ id: dmChannels.id });
+      // Find dm channels where user1 is a participant
+      const user1Channels = await tx
+        .select({ dmChannelId: dmParticipants.dmChannelId })
+        .from(dmParticipants)
+        .where(eq(dmParticipants.userId, userId1));
 
-    if (!channel) {
-      return {
-        data: null,
-        error: { code: "INTERNAL", message: "Failed to create DM channel", statusCode: 500 },
-      };
-    }
+      if (user1Channels.length > 0) {
+        const channelIds = user1Channels.map((r) => r.dmChannelId);
+        const sharedChannels = await tx
+          .select({ dmChannelId: dmParticipants.dmChannelId })
+          .from(dmParticipants)
+          .where(
+            and(
+              inArray(dmParticipants.dmChannelId, channelIds),
+              eq(dmParticipants.userId, userId2),
+            ),
+          )
+          .limit(1);
 
-    // Add both participants
-    await db.insert(dmParticipants).values([
-      { dmChannelId: channel.id, userId: userId1 },
-      { dmChannelId: channel.id, userId: userId2 },
-    ]);
+        if (sharedChannels.length > 0 && sharedChannels[0]) {
+          return { data: { id: sharedChannels[0].dmChannelId }, error: null };
+        }
+      }
 
-    return { data: { id: channel.id }, error: null };
+      // Create a new DM channel
+      const [channel] = await tx
+        .insert(dmChannels)
+        .values({})
+        .returning({ id: dmChannels.id });
+
+      if (!channel) {
+        return {
+          data: null,
+          error: { code: "INTERNAL", message: "Failed to create DM channel", statusCode: 500 } as const,
+        };
+      }
+
+      await tx.insert(dmParticipants).values([
+        { dmChannelId: channel.id, userId: userId1 },
+        { dmChannelId: channel.id, userId: userId2 },
+      ]);
+
+      return { data: { id: channel.id }, error: null };
+    });
+
+    return result;
   } catch (err) {
     console.error("[DMs] getOrCreateDmChannel error:", err);
     return {
@@ -141,30 +154,22 @@ export async function getDmChannels(
         ),
       );
 
-    // Get last message for each channel using a subquery approach
-    const lastMessageRows = await db
-      .select({
-        dmChannelId: dmMessages.dmChannelId,
-        content: dmMessages.content,
-        createdAt: dmMessages.createdAt,
-        id: dmMessages.id,
-      })
-      .from(dmMessages)
-      .where(inArray(dmMessages.dmChannelId, channelIds))
-      .orderBy(desc(dmMessages.id));
+    // Get last message per channel efficiently using DISTINCT ON
+    const lastMessageRows = channelIds.length > 0
+      ? await db.execute(sql`
+        SELECT DISTINCT ON (dm_channel_id) dm_channel_id, content, created_at
+        FROM dm_messages
+        WHERE dm_channel_id IN (${sql.join(channelIds.map(id => sql`${id}`), sql`, `)})
+        ORDER BY dm_channel_id, id DESC
+      `)
+      : [];
 
-    // Build last message map (take first seen per channel since ordered by desc id)
-    const lastMessageMap = new Map<
-      string,
-      { content: string; createdAt: Date }
-    >();
-    for (const m of lastMessageRows) {
-      if (!lastMessageMap.has(m.dmChannelId)) {
-        lastMessageMap.set(m.dmChannelId, {
-          content: m.content,
-          createdAt: m.createdAt,
-        });
-      }
+    const lastMessageMap = new Map<string, { content: string; createdAt: Date }>();
+    for (const m of lastMessageRows as any[]) {
+      lastMessageMap.set(m.dm_channel_id, {
+        content: m.content,
+        createdAt: new Date(m.created_at),
+      });
     }
 
     const participantMap = new Map<string, (typeof participantRows)[0]>();
