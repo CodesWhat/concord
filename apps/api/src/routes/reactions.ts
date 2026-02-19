@@ -9,6 +9,33 @@ import { Permissions } from "@concord/shared";
 import { dispatchToChannel, GatewayEvent } from "../gateway/index.js";
 
 export default async function reactionRoutes(app: FastifyInstance) {
+  // POST /channels/:channelId/reactions/batch — Batch fetch reactions for multiple messages
+  app.post<{
+    Params: { channelId: string };
+    Body: { messageIds: string[] };
+  }>(
+    "/channels/:channelId/reactions/batch",
+    {
+      preHandler: [
+        requireAuth,
+        requireChannelPermission(Permissions.READ_MESSAGES),
+      ],
+    },
+    async (request, reply) => {
+      const { messageIds } = request.body;
+      if (!Array.isArray(messageIds) || messageIds.length === 0) {
+        return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "messageIds array required", statusCode: 400 } });
+      }
+      // Limit to 100 message IDs
+      const limited = messageIds.slice(0, 100);
+      const result = await reactionService.getReactionsBatch(limited);
+      if (result.error) {
+        return reply.code(result.error.statusCode).send({ error: result.error });
+      }
+      return result.data;
+    },
+  );
+
   // PUT /channels/:channelId/messages/:messageId/reactions/:emoji — Add reaction
   app.put<{ Params: { channelId: string; messageId: string; emoji: string } }>(
     "/channels/:channelId/messages/:messageId/reactions/:emoji",

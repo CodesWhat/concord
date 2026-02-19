@@ -447,6 +447,7 @@ export default function MessageList() {
   const clearNewFlag = useMessageStore((s) => s.clearNewFlag);
   const threads = useThreadStore((s) => s.threads);
   const fetchChannelThreads = useThreadStore((s) => s.fetchChannelThreads);
+  const fetchReactionsBatch = useReactionStore((s) => s.fetchReactionsBatch);
   const markChannelRead = useUnreadStore((s) => s.markChannelRead);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -459,6 +460,14 @@ export default function MessageList() {
       fetchChannelThreads(selectedChannelId);
     }
   }, [selectedChannelId, fetchChannelThreads]);
+
+  // Fetch reactions for visible messages
+  useEffect(() => {
+    if (selectedChannelId && messages.length > 0) {
+      const messageIds = messages.map((m) => m.id);
+      fetchReactionsBatch(selectedChannelId, messageIds);
+    }
+  }, [selectedChannelId, messages.length, fetchReactionsBatch]);
 
   // Auto-mark channel as read when last message is visible
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../db.js";
 import { reactions } from "../models/schema.js";
 import type { ServiceResult } from "@concord/shared";
@@ -94,7 +94,6 @@ export async function getReactions(
       .select({
         emoji: reactions.emoji,
         userId: reactions.userId,
-        count: sql<number>`count(*) over (partition by ${reactions.emoji})`,
       })
       .from(reactions)
       .where(eq(reactions.messageId, BigInt(messageId)))
@@ -122,6 +121,46 @@ export async function getReactions(
     return { data: result, error: null };
   } catch (err) {
     console.error("[reactions] getReactions error:", err);
+    return {
+      data: null,
+      error: { code: "INTERNAL", message: "Failed to get reactions", statusCode: 500 },
+    };
+  }
+}
+
+export async function getReactionsBatch(
+  messageIds: string[],
+): Promise<ServiceResult<Record<string, ReactionGroup[]>>> {
+  if (messageIds.length === 0) {
+    return { data: {}, error: null };
+  }
+  try {
+    const bigintIds = messageIds.map((id) => BigInt(id));
+    const rows = await db
+      .select({
+        messageId: reactions.messageId,
+        emoji: reactions.emoji,
+        userId: reactions.userId,
+      })
+      .from(reactions)
+      .where(inArray(reactions.messageId, bigintIds))
+      .orderBy(reactions.emoji, reactions.createdAt);
+
+    const result: Record<string, ReactionGroup[]> = {};
+    for (const row of rows) {
+      const mid = row.messageId.toString();
+      if (!result[mid]) result[mid] = [];
+      const group = result[mid].find((g) => g.emoji === row.emoji);
+      if (group) {
+        group.userIds.push(row.userId);
+        group.count = group.userIds.length;
+      } else {
+        result[mid].push({ emoji: row.emoji, count: 1, userIds: [row.userId] });
+      }
+    }
+    return { data: result, error: null };
+  } catch (err) {
+    console.error("[reactions] getReactionsBatch error:", err);
     return {
       data: null,
       error: { code: "INTERNAL", message: "Failed to get reactions", statusCode: 500 },

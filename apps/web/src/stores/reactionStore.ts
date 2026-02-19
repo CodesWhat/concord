@@ -12,6 +12,7 @@ interface ReactionState {
   addReaction: (channelId: string, messageId: string, emoji: string) => Promise<void>;
   removeReaction: (channelId: string, messageId: string, emoji: string) => Promise<void>;
   fetchReactions: (channelId: string, messageId: string) => Promise<void>;
+  fetchReactionsBatch: (channelId: string, messageIds: string[]) => Promise<void>;
   handleReactionAdd: (data: { messageId: string; channelId: string; userId: string; emoji: string }) => void;
   handleReactionRemove: (data: { messageId: string; channelId: string; userId: string; emoji: string }) => void;
 }
@@ -45,13 +46,12 @@ export const useReactionStore = create<ReactionState>((set, get) => ({
   reactions: {},
 
   addReaction: async (channelId: string, messageId: string, emoji: string) => {
-    // Optimistic update handled by gateway event; just fire the API
     try {
       const encodedEmoji = encodeURIComponent(emoji);
-      const updated = await api.put<Reaction[]>(
+      await api.put(
         `/api/v1/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}`,
       );
-      set((s) => ({ reactions: { ...s.reactions, [messageId]: updated } }));
+      // Gateway REACTION_ADD event will update local state
     } catch (err) {
       console.error("[reactionStore] addReaction failed:", err);
     }
@@ -77,6 +77,19 @@ export const useReactionStore = create<ReactionState>((set, get) => ({
       set((s) => ({ reactions: { ...s.reactions, [messageId]: data } }));
     } catch (err) {
       console.error("[reactionStore] fetchReactions failed:", err);
+    }
+  },
+
+  fetchReactionsBatch: async (channelId: string, messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+    try {
+      const data = await api.post<Record<string, Reaction[]>>(
+        `/api/v1/channels/${channelId}/reactions/batch`,
+        { messageIds },
+      );
+      set((s) => ({ reactions: { ...s.reactions, ...data } }));
+    } catch (err) {
+      console.error("[reactionStore] fetchReactionsBatch failed:", err);
     }
   },
 
