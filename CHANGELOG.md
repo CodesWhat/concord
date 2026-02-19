@@ -5,10 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-02-19
 
 ### Added
 
+- Message reactions — add/remove emoji reactions on messages with live updates via gateway
+- Direct messages — 1:1 DM channels with real-time delivery
+- Full-text message search with permission-aware results and XSS-safe highlighting
+- DM unread badges and load-more message history
+- Search pagination with "load more" support
 - Kick/ban members with role hierarchy enforcement (cannot kick/ban above your own role)
 - Leave server functionality with transaction safety
 - Rate limiting via @fastify/rate-limit — global defaults and per-route overrides
@@ -29,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- XSS vulnerability in search highlight rendering (sanitized ts_headline output)
+- Search results now respect per-channel READ_MESSAGES permission overrides
+- Reactions now load on page via batch endpoint (previously invisible until interacted)
+- DM channel creation race condition fixed with database transaction
+- DM recipient validation prevents 500 errors on invalid recipient IDs
 - Password reset API path corrected from /forget-password to /request-password-reset
 - Leave server operation wrapped in transaction for atomicity
 - Rate limit keyGenerator safe-cast for pre-auth requests (avoids crash on missing session)

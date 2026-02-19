@@ -27,8 +27,7 @@
 
 <br>
 
-<!-- TODO: Add screenshot -->
-![Concord Chat](docs/screenshot.png)
+> **Screenshots coming soon** — in the meantime, try `docker compose -f docker/docker-compose.yml up -d` and see for yourself!
 
 <br>
 
@@ -67,19 +66,31 @@ cd concord
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-Then open [http://localhost:8080](http://localhost:8080). The database migrates automatically on startup — no manual setup needed.
-
-**Optional configuration:** Copy `apps/api/.env.example` to `apps/api/.env` and set your SMTP credentials for email delivery, S3 details for file uploads, and VAPID keys for push notifications. See the [Configuration](#configuration) section for all available variables.
+Then open [http://localhost:8080](http://localhost:8080). The database migrates automatically on startup. Register a new account to get started — the first user to create a server becomes its owner.
 
 <details>
-<summary><strong>Default seed accounts</strong></summary>
+<summary><strong>S3 storage setup (Garage)</strong></summary>
 
-| Email | Password | Role |
-| --- | --- | --- |
-| `admin@concord.local` | `password123` | Server owner |
-| `testuser@concord.local` | `password123` | Member |
+The Docker Compose stack includes [Garage](https://garagehq.deuxfleurs.fr/) for S3-compatible file storage. After first start, create the bucket:
+
+```bash
+# Connect to the Garage admin API and set up the cluster
+docker compose -f docker/docker-compose.yml exec garage /garage node id 2>/dev/null | head -1
+# Use the node ID from above:
+docker compose -f docker/docker-compose.yml exec garage /garage layout assign -z dc1 -c 1G <NODE_ID>
+docker compose -f docker/docker-compose.yml exec garage /garage layout apply --version 1
+
+# Create an API key and bucket
+docker compose -f docker/docker-compose.yml exec garage /garage key create concord-key
+docker compose -f docker/docker-compose.yml exec garage /garage bucket create concord
+docker compose -f docker/docker-compose.yml exec garage /garage bucket allow concord --read --write --key concord-key
+```
+
+Update the `S3_ACCESS_KEY` and `S3_SECRET_KEY` in `docker/docker-compose.yml` with the key ID and secret from the `key create` output.
 
 </details>
+
+**Optional configuration:** For Docker, edit the environment variables directly in `docker/docker-compose.yml`. For local development, copy `apps/api/.env.example` to `apps/api/.env`. Set your SMTP credentials for email delivery, S3 details for file uploads, and VAPID keys for push notifications. See the [Configuration](#configuration) section for all available variables.
 
 ---
 
@@ -170,7 +181,7 @@ Then open [http://localhost:8080](http://localhost:8080). The database migrates 
 
 <h3 align="center" id="configuration">Configuration</h3>
 
-Copy `apps/api/.env.example` to `apps/api/.env` and configure as needed:
+For Docker deployments, set these in `docker/docker-compose.yml`. For local development, copy `apps/api/.env.example` to `apps/api/.env`:
 
 | Variable | Description |
 | --- | --- |
