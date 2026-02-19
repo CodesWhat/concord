@@ -114,6 +114,12 @@ export async function acceptInvite(
     return { data: null, error: { code: "MAX_USES", message: "Invite has reached maximum uses", statusCode: 410 } };
   }
 
+  // Check if banned
+  const { isBanned } = await import("./bans.js");
+  if (await isBanned(invite.serverId, userId)) {
+    return { data: null, error: { code: "BANNED", message: "You are banned from this server", statusCode: 403 } };
+  }
+
   // Check if already member
   const existing = await db
     .select()

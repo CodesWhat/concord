@@ -2,6 +2,8 @@ import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import rateLimit from "@fastify/rate-limit";
+import Redis from "ioredis";
 import { config } from "./config.js";
 import { auth } from "./services/auth.js";
 import serverRoutes from "./routes/servers.js";
@@ -15,6 +17,7 @@ import readStateRoutes from "./routes/readState.js";
 import notificationRoutes from "./routes/notifications.js";
 import roleRoutes from "./routes/roles.js";
 import forumRoutes from "./routes/forum.js";
+import banRoutes from "./routes/bans.js";
 import { initGateway } from "./gateway/index.js";
 import { initBucket } from "./services/s3.js";
 
@@ -32,10 +35,35 @@ await server.register(multipart, {
   limits: { fileSize: 25 * 1024 * 1024 },
 });
 
+// Global rate limiting
+const rateLimitRedis = new Redis(config.redisUrl, { maxRetriesPerRequest: 1 });
+await server.register(rateLimit, {
+  max: 100,
+  timeWindow: "1 minute",
+  redis: rateLimitRedis,
+  keyGenerator: (request) => {
+    return request.userId || request.ip;
+  },
+  errorResponseBuilder: (_request, context) => ({
+    error: {
+      code: "RATE_LIMITED",
+      message: `Too many requests. Try again in ${Math.ceil(context.ttl / 1000)} seconds.`,
+      statusCode: 429,
+    },
+  }),
+});
+
 // Better Auth catch-all route
 server.route({
   method: ["GET", "POST"],
   url: "/api/auth/*",
+  config: {
+    rateLimit: {
+      max: 10,
+      timeWindow: "1 minute",
+      keyGenerator: (request) => request.ip,
+    },
+  },
   async handler(request, reply) {
     try {
       const url = new URL(
@@ -80,6 +108,7 @@ await server.register(threadRoutes, { prefix: "/api/v1" });
 await server.register(readStateRoutes, { prefix: "/api/v1" });
 await server.register(notificationRoutes, { prefix: "/api/v1" });
 await server.register(forumRoutes, { prefix: "/api/v1" });
+await server.register(banRoutes, { prefix: "/api/v1" });
 
 server.get("/", async () => {
   return { status: "ok", name: "concord-api" };

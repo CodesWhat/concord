@@ -32,6 +32,8 @@ export enum GatewayEvent {
   POST_UPDATE = "POST_UPDATE",
   POST_DELETE = "POST_DELETE",
   POST_VOTE = "POST_VOTE",
+  MEMBER_BAN = "MEMBER_BAN",
+  MEMBER_UNBAN = "MEMBER_UNBAN",
 }
 
 // Wire format: every message is { op, d, t?, s? }

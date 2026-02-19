@@ -12,13 +12,16 @@ interface ServerSettingsModalProps {
 }
 
 export default function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps) {
-  const [tab, setTab] = useState<"overview" | "channels" | "roles">("overview");
+  const [tab, setTab] = useState<"overview" | "channels" | "roles" | "bans">("overview");
   const servers = useServerStore((s) => s.servers);
   const selectedServerId = useServerStore((s) => s.selectedServerId);
   const fetchServers = useServerStore((s) => s.fetchServers);
   const channels = useChannelStore((s) => s.channels);
   const fetchChannels = useChannelStore((s) => s.fetchChannels);
   const userId = useAuthStore((s) => s.user?.id);
+  const bans = useServerStore((s) => s.bans);
+  const fetchBans = useServerStore((s) => s.fetchBans);
+  const unbanMember = useServerStore((s) => s.unbanMember);
 
   const server = servers.find((s) => s.id === selectedServerId);
   const isOwner = server?.ownerId === userId;
@@ -27,6 +30,8 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
   const [description, setDescription] = useState(server?.description ?? "");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const leaveServer = useServerStore((s) => s.leaveServer);
 
   // Channel creation
   const [newChannelName, setNewChannelName] = useState("");
@@ -115,13 +120,19 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
           >
             Roles
           </button>
+          <button
+            onClick={() => { setTab("bans"); if (selectedServerId) fetchBans(selectedServerId); }}
+            className={`rounded-md px-2 py-1.5 text-left text-sm ${tab === "bans" ? "bg-bg-elevated text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
+          >
+            Bans
+          </button>
         </div>
 
         {/* Content */}
         <div className="flex flex-1 flex-col p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-text-primary">
-              {tab === "overview" ? "Server Overview" : tab === "channels" ? "Channels" : "Roles"}
+              {tab === "overview" ? "Server Overview" : tab === "channels" ? "Channels" : tab === "roles" ? "Roles" : "Bans"}
             </h2>
             <button onClick={onClose} className="text-text-muted hover:text-text-secondary text-xl">&times;</button>
           </div>
@@ -177,6 +188,44 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                       </button>
                       <button
                         onClick={() => setConfirmDelete(false)}
+                        className="text-sm text-text-muted hover:text-text-secondary"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!isOwner && (
+                <div className="mt-auto border-t border-border pt-4">
+                  {!confirmLeave ? (
+                    <button
+                      onClick={() => setConfirmLeave(true)}
+                      className="text-sm text-red-400 hover:text-red-300"
+                    >
+                      Leave Server
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-red-400">
+                        Are you sure you want to leave {server.name}? You'll need a new invite to rejoin.
+                      </span>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await leaveServer(selectedServerId);
+                            onClose();
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                        className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-500"
+                      >
+                        Leave
+                      </button>
+                      <button
+                        onClick={() => setConfirmLeave(false)}
                         className="text-sm text-text-muted hover:text-text-secondary"
                       >
                         Cancel
@@ -257,6 +306,44 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
 
           {tab === "roles" && (
             <RoleEditor serverId={selectedServerId} />
+          )}
+
+          {tab === "bans" && (
+            <div className="flex flex-1 flex-col overflow-y-auto">
+              {bans.length === 0 ? (
+                <p className="text-sm text-text-muted py-4">No banned users.</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {bans.map((ban) => (
+                    <div key={ban.userId} className="group flex items-center justify-between rounded-md px-2 py-2 hover:bg-bg-content">
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium text-text-primary">
+                          {ban.user.displayName}
+                        </span>
+                        <span className="ml-2 text-xs text-text-muted">
+                          @{ban.user.username}
+                        </span>
+                        {ban.reason && (
+                          <p className="text-xs text-text-muted mt-0.5 truncate">
+                            Reason: {ban.reason}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (selectedServerId) {
+                            await unbanMember(selectedServerId, ban.userId);
+                          }
+                        }}
+                        className="shrink-0 rounded-lg px-3 py-1 text-xs font-medium text-red-400 hover:bg-bg-elevated hover:text-red-300 opacity-0 group-hover:opacity-100"
+                      >
+                        Unban
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

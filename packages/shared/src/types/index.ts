@@ -123,6 +123,19 @@ export interface ForumPost {
   };
 }
 
+export interface Ban {
+  userId: string;
+  serverId: string;
+  reason: string | null;
+  bannedBy: string;
+  createdAt: string;
+  user?: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+}
+
 export type ServiceResult<T> =
   | { data: T; error: null }
   | { data: null; error: AppError };

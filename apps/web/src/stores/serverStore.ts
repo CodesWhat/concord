@@ -34,11 +34,21 @@ interface Role {
   hoisted: boolean;
 }
 
+interface Ban {
+  userId: string;
+  serverId: string;
+  reason: string | null;
+  bannedBy: string;
+  createdAt: string;
+  user: { username: string; displayName: string; avatarUrl: string | null };
+}
+
 interface ServerState {
   servers: Server[];
   selectedServerId: string | null;
   members: Member[];
   roles: Role[];
+  bans: Ban[];
   isLoading: boolean;
   fetchServers: () => Promise<void>;
   selectServer: (id: string) => void;
@@ -50,6 +60,11 @@ interface ServerState {
   deleteRole: (serverId: string, roleId: string) => Promise<void>;
   assignRole: (serverId: string, userId: string, roleId: string) => Promise<void>;
   removeRole: (serverId: string, userId: string, roleId: string) => Promise<void>;
+  leaveServer: (serverId: string) => Promise<void>;
+  kickMember: (serverId: string, memberId: string) => Promise<boolean>;
+  banMember: (serverId: string, memberId: string, reason?: string) => Promise<boolean>;
+  unbanMember: (serverId: string, userId: string) => Promise<boolean>;
+  fetchBans: (serverId: string) => Promise<void>;
 }
 
 export const useServerStore = create<ServerState>((set, get) => ({
@@ -57,6 +72,7 @@ export const useServerStore = create<ServerState>((set, get) => ({
   selectedServerId: null,
   members: [],
   roles: [],
+  bans: [],
   isLoading: false,
 
   fetchServers: async () => {
@@ -144,6 +160,53 @@ export const useServerStore = create<ServerState>((set, get) => ({
   removeRole: async (serverId: string, userId: string, roleId: string) => {
     try {
       await api.delete(`/api/v1/servers/${serverId}/members/${userId}/roles/${roleId}`);
+    } catch {
+      // ignore
+    }
+  },
+
+  leaveServer: async (serverId: string) => {
+    await api.delete(`/api/v1/servers/${serverId}/members/@me`);
+    set((state) => ({
+      servers: state.servers.filter((s) => s.id !== serverId),
+      selectedServerId: state.selectedServerId === serverId ? null : state.selectedServerId,
+    }));
+  },
+
+  kickMember: async (serverId: string, memberId: string) => {
+    try {
+      await api.post(`/api/v1/servers/${serverId}/members/${memberId}/kick`);
+      set((s) => ({ members: s.members.filter((m) => m.userId !== memberId) }));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  banMember: async (serverId: string, memberId: string, reason?: string) => {
+    try {
+      await api.post(`/api/v1/servers/${serverId}/members/${memberId}/ban`, { reason });
+      set((s) => ({ members: s.members.filter((m) => m.userId !== memberId) }));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  unbanMember: async (serverId: string, userId: string) => {
+    try {
+      await api.delete(`/api/v1/servers/${serverId}/bans/${userId}`);
+      set((s) => ({ bans: s.bans.filter((b) => b.userId !== userId) }));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  fetchBans: async (serverId: string) => {
+    try {
+      const bans = await api.get<Ban[]>(`/api/v1/servers/${serverId}/bans`);
+      set({ bans });
     } catch {
       // ignore
     }

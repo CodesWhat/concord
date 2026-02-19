@@ -4,6 +4,7 @@ import { usePresenceStore } from "../stores/presenceStore";
 import type { UserStatus } from "@concord/shared";
 import StatusDot from "./StatusDot";
 import UserProfileCard from "./UserProfileCard.js";
+import MemberContextMenu from "./MemberContextMenu.js";
 import { getAvatarColor } from "../utils/colors.js";
 
 interface MemberDisplay {
@@ -13,15 +14,21 @@ interface MemberDisplay {
   roleColor: string | null;
 }
 
-function MemberItem({ member, onClickMember }: { member: MemberDisplay; onClickMember: (userId: string, rect: DOMRect) => void }) {
+function MemberItem({ member, onClickMember, onContextMenu }: { member: MemberDisplay; onClickMember: (userId: string, rect: DOMRect) => void; onContextMenu: (userId: string, x: number, y: number) => void }) {
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     onClickMember(member.userId, rect);
   };
 
+  const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    onContextMenu(member.userId, e.clientX, e.clientY);
+  };
+
   return (
     <button
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
       className="group flex w-full items-center gap-3 rounded-md border-l-2 border-transparent px-2 py-1.5 transition-colors duration-150 hover:border-primary hover:bg-bg-elevated text-left focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
     >
       <div className="relative shrink-0">
@@ -53,11 +60,13 @@ function MemberGroup({
   count,
   members: memberList,
   onClickMember,
+  onContextMenu,
 }: {
   label: string;
   count: number;
   members: MemberDisplay[];
   onClickMember: (userId: string, rect: DOMRect) => void;
+  onContextMenu: (userId: string, x: number, y: number) => void;
 }) {
   return (
     <div className="mb-4">
@@ -66,7 +75,7 @@ function MemberGroup({
       </h3>
       <div className="flex flex-col gap-0.5">
         {memberList.map((m) => (
-          <MemberItem key={m.userId} member={m} onClickMember={onClickMember} />
+          <MemberItem key={m.userId} member={m} onClickMember={onClickMember} onContextMenu={onContextMenu} />
         ))}
       </div>
     </div>
@@ -77,9 +86,14 @@ export default function MemberSidebar() {
   const members = useServerStore((s) => s.members);
   const presenceStatuses = usePresenceStore((s) => s.statuses);
   const [profileCard, setProfileCard] = useState<{ userId: string; rect: DOMRect } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ userId: string; x: number; y: number } | null>(null);
 
   const handleClickMember = useCallback((userId: string, rect: DOMRect) => {
     setProfileCard((prev) => prev?.userId === userId ? null : { userId, rect });
+  }, []);
+
+  const handleContextMenu = useCallback((userId: string, x: number, y: number) => {
+    setContextMenu({ userId, x, y });
   }, []);
 
   const displayMembers: MemberDisplay[] = members.map((m) => ({
@@ -106,10 +120,10 @@ export default function MemberSidebar() {
     <aside className="hidden lg:flex h-full w-60 min-w-60 flex-col bg-bg-sidebar border-l border-border">
       <div className="flex-1 overflow-y-auto px-2 py-4 scrollbar-thin">
         {online.length > 0 && (
-          <MemberGroup label="Online" count={online.length} members={online} onClickMember={handleClickMember} />
+          <MemberGroup label="Online" count={online.length} members={online} onClickMember={handleClickMember} onContextMenu={handleContextMenu} />
         )}
         {offline.length > 0 && (
-          <MemberGroup label="Offline" count={offline.length} members={offline} onClickMember={handleClickMember} />
+          <MemberGroup label="Offline" count={offline.length} members={offline} onClickMember={handleClickMember} onContextMenu={handleContextMenu} />
         )}
       </div>
       {profileCard && (
@@ -117,6 +131,13 @@ export default function MemberSidebar() {
           userId={profileCard.userId}
           anchorRect={profileCard.rect}
           onClose={() => setProfileCard(null)}
+        />
+      )}
+      {contextMenu && (
+        <MemberContextMenu
+          userId={contextMenu.userId}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={() => setContextMenu(null)}
         />
       )}
     </aside>
