@@ -26,6 +26,7 @@ COPY --from=build /app/packages/shared/dist ./node_modules/@concord/shared/dist
 COPY --from=build /app/packages/shared/package.json ./node_modules/@concord/shared/
 
 COPY --from=build /app/apps/api/bigint-patch.mjs ./
+COPY --from=build /app/apps/api/migrations ./migrations
 
 EXPOSE 3000 3001
 CMD ["node", "--import", "./bigint-patch.mjs", "dist/index.js"]
