@@ -262,13 +262,15 @@ export async function leaveServer(
     return { data: null, error: { code: "FORBIDDEN", message: "Server owner cannot leave. Transfer ownership or delete the server.", statusCode: 403 } };
   }
 
-  // Delete member roles then membership
-  await db.delete(memberRoles).where(
-    and(eq(memberRoles.userId, userId), eq(memberRoles.serverId, serverId)),
-  );
-  await db.delete(serverMembers).where(
-    and(eq(serverMembers.userId, userId), eq(serverMembers.serverId, serverId)),
-  );
+  // Delete member roles then membership in a transaction
+  await db.transaction(async (tx) => {
+    await tx.delete(memberRoles).where(
+      and(eq(memberRoles.userId, userId), eq(memberRoles.serverId, serverId)),
+    );
+    await tx.delete(serverMembers).where(
+      and(eq(serverMembers.userId, userId), eq(serverMembers.serverId, serverId)),
+    );
+  });
 
   return { data: undefined, error: null };
 }

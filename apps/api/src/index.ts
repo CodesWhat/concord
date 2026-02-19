@@ -42,7 +42,7 @@ await server.register(rateLimit, {
   timeWindow: "1 minute",
   redis: rateLimitRedis,
   keyGenerator: (request) => {
-    return request.userId || request.ip;
+    return (request as { userId?: string }).userId ?? request.ip;
   },
   errorResponseBuilder: (_request, context) => ({
     error: {

@@ -6,11 +6,11 @@ import { MailIcon } from "../../components/icons";
 import { AuthLayout } from "./AuthLayout";
 import { authClient } from "../../api/auth";
 
-// Better Auth exposes POST /api/auth/forget-password but the client type
-// doesn't surface `forgetPassword` unless the server plugin is inferred.
-// Use $fetch to call the endpoint directly.
+// Better Auth's password reset endpoint is POST /api/auth/request-password-reset.
+// The typed client method isn't surfaced without server plugin inference,
+// so use $fetch to call the endpoint directly.
 const forgetPassword = (body: { email: string; redirectTo: string }) =>
-  authClient.$fetch("/forget-password", { method: "POST", body });
+  authClient.$fetch("/request-password-reset", { method: "POST", body });
 
 function validateEmail(email: string): string | undefined {
   if (!email) return "Email is required";

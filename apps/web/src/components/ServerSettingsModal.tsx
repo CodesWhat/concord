@@ -318,10 +318,10 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                     <div key={ban.userId} className="group flex items-center justify-between rounded-md px-2 py-2 hover:bg-bg-content">
                       <div className="min-w-0">
                         <span className="text-sm font-medium text-text-primary">
-                          {ban.user.displayName}
+                          {ban.user?.displayName ?? ban.userId}
                         </span>
                         <span className="ml-2 text-xs text-text-muted">
-                          @{ban.user.username}
+                          @{ban.user?.username ?? "unknown"}
                         </span>
                         {ban.reason && (
                           <p className="text-xs text-text-muted mt-0.5 truncate">

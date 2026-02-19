@@ -144,6 +144,26 @@ class WebSocketClient {
             },
           );
         break;
+      case "MEMBER_BAN": {
+        const bannedUserId = (data as { userId: string }).userId;
+        const bannedServerId = (data as { serverId: string }).serverId;
+        const currentUser = useAuthStore.getState().user?.id;
+        if (bannedUserId === currentUser) {
+          const store = useServerStore.getState();
+          useServerStore.setState({
+            servers: store.servers.filter((s) => s.id !== bannedServerId),
+            selectedServerId: store.selectedServerId === bannedServerId ? null : store.selectedServerId,
+          });
+        } else {
+          const selected = useServerStore.getState().selectedServerId;
+          if (selected === bannedServerId) {
+            useServerStore.setState({
+              members: useServerStore.getState().members.filter((m) => m.userId !== bannedUserId),
+            });
+          }
+        }
+        break;
+      }
       case "MEMBER_LEAVE": {
         const leaveUserId = (data as { userId: string }).userId;
         const leaveServerId = (data as { serverId: string }).serverId;

@@ -85,7 +85,7 @@ export default function MemberContextMenu({ userId, position, onClose }: MemberC
   // Ban dialog overlay
   if (showBanDialog) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 animate-fade-in" onClick={onClose}>
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 animate-fade-in" onClick={() => setShowBanDialog(false)}>
         <div className="w-full max-w-sm rounded-xl bg-bg-sidebar p-6 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-lg font-bold text-text-primary mb-2">Ban Member</h3>
           <p className="text-sm text-text-muted mb-4">
@@ -103,7 +103,7 @@ export default function MemberContextMenu({ userId, position, onClose }: MemberC
           />
           <div className="flex justify-end gap-2">
             <button
-              onClick={onClose}
+              onClick={() => setShowBanDialog(false)}
               className="rounded-lg px-4 py-2 text-sm text-text-muted hover:text-text-secondary"
             >
               Cancel
@@ -123,7 +123,7 @@ export default function MemberContextMenu({ userId, position, onClose }: MemberC
   // Kick confirmation overlay
   if (showKickConfirm) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 animate-fade-in" onClick={onClose}>
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 animate-fade-in" onClick={() => setShowKickConfirm(false)}>
         <div className="w-full max-w-sm rounded-xl bg-bg-sidebar p-6 shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-lg font-bold text-text-primary mb-2">Kick Member</h3>
           <p className="text-sm text-text-muted mb-4">
@@ -131,7 +131,7 @@ export default function MemberContextMenu({ userId, position, onClose }: MemberC
           </p>
           <div className="flex justify-end gap-2">
             <button
-              onClick={onClose}
+              onClick={() => setShowKickConfirm(false)}
               className="rounded-lg px-4 py-2 text-sm text-text-muted hover:text-text-secondary"
             >
               Cancel
