@@ -4,10 +4,11 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.api
     environment:
+      NODE_ENV: production
       DATABASE_URL: postgres://concord:concord@postgres:5432/concord
       REDIS_URL: redis://redis:6379
       AUTH_SECRET: change-me-in-production
-      AUTH_BASE_URL: http://concord-api:3000
+      AUTH_BASE_URL: http://localhost:8080
       CORS_ORIGIN: http://localhost:8080
       TRUSTED_ORIGINS: http://localhost:8080
       LIVEKIT_URL: ws://livekit:7880
@@ -25,12 +26,18 @@ services:
       # SMTP_FROM: noreply@your-domain.com
     ports:
       - "3000:3000"
-      - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   concord-web:
     build:
@@ -38,6 +45,10 @@ services:
       dockerfile: docker/Dockerfile.web
     ports:
       - "8080:80"
+    depends_on:
+      concord-api:
+        condition: service_healthy
+    restart: unless-stopped
 
   postgres:
     image: postgres:17
@@ -54,6 +65,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -64,6 +76,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   livekit:
     image: livekit/livekit-server:latest
@@ -71,6 +84,7 @@ services:
       - "7880:7880"
       - "7881:7881"
       - "7882:7882/udp"
+    restart: unless-stopped
 
   garage:
     image: dxflrs/garage:v1.1.0
@@ -81,6 +95,7 @@ services:
     ports:
       - "3900:3900"
       - "3902:3902"
+    restart: unless-stopped
 
 volumes:
   pg_data:
