@@ -28,7 +28,7 @@ function sanitizeHighlight(html: string): string {
 }
 
 export default function SearchPanel() {
-  const { isOpen, results, isSearching, query, search, clearSearch, close } =
+  const { isOpen, results, isSearching, query, search, clearSearch, close, hasMore, loadMore } =
     useSearchStore();
   const selectedServerId = useServerStore((s) => s.selectedServerId);
   const channels = useChannelStore((s) => s.channels);
@@ -236,10 +236,20 @@ export default function SearchPanel() {
           )}
         </div>
 
-        {/* Footer hint */}
+        {/* Footer */}
         {results.length > 0 && !isSearching && (
-          <div className="border-t border-border px-4 py-2 text-xs text-text-muted">
-            {results.length} result{results.length !== 1 ? "s" : ""} — click to jump to channel
+          <div className="border-t border-border px-4 py-2 flex items-center justify-between">
+            <span className="text-xs text-text-muted">
+              {results.length} result{results.length !== 1 ? "s" : ""}
+            </span>
+            {hasMore && (
+              <button
+                onClick={() => selectedServerId && loadMore(selectedServerId)}
+                className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+              >
+                Load more
+              </button>
+            )}
           </div>
         )}
       </div>

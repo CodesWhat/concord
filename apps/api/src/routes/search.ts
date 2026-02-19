@@ -87,6 +87,7 @@ export default async function searchRoutes(app: FastifyInstance) {
       before?: string;
       after?: string;
       limit?: string;
+      offset?: string;
     };
   }>(
     "/servers/:serverId/search",
@@ -103,7 +104,7 @@ export default async function searchRoutes(app: FastifyInstance) {
       ],
     },
     async (request, reply) => {
-      const { q, channelId, authorId, before, after, limit } = request.query;
+      const { q, channelId, authorId, before, after, limit, offset } = request.query;
 
       // Validate query
       const trimmedQuery = q?.trim();
@@ -127,6 +128,7 @@ export default async function searchRoutes(app: FastifyInstance) {
       }
 
       const safeLimit = limit ? parseInt(limit, 10) : 25;
+      const safeOffset = offset ? parseInt(offset, 10) : undefined;
 
       // Resolve which channels this user can read (respects channel/category overrides)
       const visibleChannelIds = await getVisibleChannelIds(
@@ -143,6 +145,7 @@ export default async function searchRoutes(app: FastifyInstance) {
           before,
           after,
           limit: safeLimit,
+          offset: safeOffset,
           visibleChannelIds,
         },
       );

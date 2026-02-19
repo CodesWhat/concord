@@ -27,10 +27,12 @@ export async function searchMessages(
     before?: string;
     after?: string;
     limit?: number;
+    offset?: number;
     visibleChannelIds?: string[];
   } = {},
 ): Promise<ServiceResult<SearchResult[]>> {
   const safeLimit = Math.min(Math.max(options.limit ?? 25, 1), 50);
+  const safeOffset = Math.max(options.offset ?? 0, 0);
 
   // If visibleChannelIds was explicitly provided but is empty, user can't see any channels
   if (options.visibleChannelIds && options.visibleChannelIds.length === 0) {
@@ -91,7 +93,8 @@ export async function searchMessages(
       .innerJoin(users, eq(messages.authorId, users.id))
       .where(whereClause)
       .orderBy(sql`ts_rank_cd(${messages}.search_vector, ${tsquery}) DESC`)
-      .limit(safeLimit);
+      .limit(safeLimit)
+      .offset(safeOffset);
 
     const results: SearchResult[] = rows.map((row) => ({
       id: row.id.toString(),
