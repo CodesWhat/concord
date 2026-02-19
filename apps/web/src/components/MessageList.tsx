@@ -4,12 +4,15 @@ import { useChannelStore } from "../stores/channelStore.js";
 import { useAuthStore } from "../stores/authStore.js";
 import { useThreadStore, type Thread } from "../stores/threadStore.js";
 import { useUnreadStore } from "../stores/unreadStore.js";
+import { useReactionStore } from "../stores/reactionStore.js";
 import ThreadIndicator from "./ThreadIndicator.js";
 import AttachmentPreview from "./AttachmentPreview.js";
 import EmptyState from "./EmptyState.js";
 import Markdown from "./Markdown.js";
 import CreateThreadModal from "./CreateThreadModal.js";
 import UserProfileCard from "./UserProfileCard.js";
+import ReactionBar from "./ReactionBar.js";
+import EmojiPicker from "./EmojiPicker.js";
 import { getAvatarColor } from "../utils/colors.js";
 import { formatTime } from "../utils/format.js";
 
@@ -29,6 +32,7 @@ function MessageActionBar({
   onEdit,
   onDelete,
   onCreateThread,
+  onReact,
 }: {
   message: Message;
   isOwnMessage: boolean;
@@ -36,9 +40,11 @@ function MessageActionBar({
   onEdit: () => void;
   onDelete: () => void;
   onCreateThread: () => void;
+  onReact: () => void;
 }) {
   return (
     <div className="absolute -top-4 right-2 hidden gap-0.5 rounded-md border border-border bg-bg-elevated px-1 py-0.5 shadow-lg group-hover:flex">
+      <ActionBtn title="Add Reaction" onClick={onReact}><SmileActionIcon /></ActionBtn>
       <ActionBtn title="Reply"><ReplyIcon /></ActionBtn>
       {!hasThread && (
         <ActionBtn title="Create Thread" onClick={onCreateThread}><ThreadCreateIcon /></ActionBtn>
@@ -188,6 +194,7 @@ function MessageRow({
   onAnimationEnd?: () => void;
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const userId = useAuthStore((s) => s.user?.id);
   const selectedChannelId = useChannelStore((s) => s.selectedChannelId);
   const editingMessageId = useMessageStore((s) => s.editingMessageId);
@@ -196,6 +203,9 @@ function MessageRow({
   const deleteMessage = useMessageStore((s) => s.deleteMessage);
   const openThread = useThreadStore((s) => s.openThread);
   const createThread = useThreadStore((s) => s.createThread);
+  const reactionsByMessage = useReactionStore((s) => s.reactions);
+  const addReaction = useReactionStore((s) => s.addReaction);
+  const messageReactions = reactionsByMessage[message.id] ?? [];
 
   const [threadModalOpen, setThreadModalOpen] = useState(false);
   const [threadDefaultName, setThreadDefaultName] = useState("");
@@ -260,6 +270,17 @@ function MessageRow({
     if (thread) openThread(thread.id);
   };
 
+  const handleReact = () => {
+    setShowReactionPicker((prev) => !prev);
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    if (selectedChannelId) {
+      addReaction(selectedChannelId, message.id, emoji);
+    }
+    setShowReactionPicker(false);
+  };
+
   const editedTag = message.editedAt ? (
     <span className="ml-1 text-xs text-text-muted">(edited)</span>
   ) : null;
@@ -298,15 +319,39 @@ function MessageRow({
     />
   );
 
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  const reactionBar = selectedChannelId ? (
+    <ReactionBar
+      messageId={message.id}
+      channelId={selectedChannelId}
+      reactions={messageReactions}
+    />
+  ) : null;
+
+  const inlineEmojiPicker = showReactionPicker && selectedChannelId ? (
+    <EmojiPicker
+      onSelect={handleEmojiSelect}
+      onClose={() => setShowReactionPicker(false)}
+      anchorRect={rowRef.current?.getBoundingClientRect() ?? new DOMRect(0, 400, 200, 20)}
+    />
+  ) : null;
+
   if (grouped) {
     return (
       <>
-        <div className={`group relative flex items-start px-4 py-0.5 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
+        <div
+          ref={rowRef}
+          className={`group relative flex items-start px-4 py-0.5 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`}
+          onAnimationEnd={onAnimationEnd}
+        >
           <div className="w-10 shrink-0 mr-4" />
           <div className="min-w-0 flex-1 text-sm leading-relaxed text-text-primary">
             {messageContent}
             {attachmentBlock}
             {threadIndicator}
+            {reactionBar}
+            {inlineEmojiPicker}
             {showDeleteConfirm && (
               <DeleteConfirmation
                 onConfirm={handleConfirmDelete}
@@ -322,6 +367,7 @@ function MessageRow({
               onEdit={handleEdit}
               onDelete={handleDelete}
               onCreateThread={handleCreateThread}
+              onReact={handleReact}
             />
           )}
         </div>
@@ -332,7 +378,11 @@ function MessageRow({
 
   return (
     <>
-      <div className={`group relative flex items-start px-4 py-2 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`} onAnimationEnd={onAnimationEnd}>
+      <div
+        ref={rowRef}
+        className={`group relative flex items-start px-4 py-2 hover:bg-bg-elevated/50 ${isEditing ? "bg-bg-elevated/30" : ""} ${isNew ? "animate-slide-up" : ""}`}
+        onAnimationEnd={onAnimationEnd}
+      >
         <button
           onClick={handleAuthorClick}
           className="mr-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold hover:opacity-80 transition-opacity focus-visible:ring-2 focus-visible:ring-primary/50 outline-none"
@@ -352,6 +402,8 @@ function MessageRow({
           </div>
           {attachmentBlock}
           {threadIndicator}
+          {reactionBar}
+          {inlineEmojiPicker}
           {showDeleteConfirm && (
             <DeleteConfirmation
               onConfirm={handleConfirmDelete}
@@ -367,6 +419,7 @@ function MessageRow({
             onEdit={handleEdit}
             onDelete={handleDelete}
             onCreateThread={handleCreateThread}
+            onReact={handleReact}
           />
         )}
       </div>
@@ -529,6 +582,17 @@ export default function MessageList() {
 }
 
 // ---------- SVG Icons ----------
+
+function SmileActionIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 13s1.5 2 4 2 4-2 4-2" />
+      <line x1="9" y1="9" x2="9.01" y2="9" strokeWidth="3" />
+      <line x1="15" y1="9" x2="15.01" y2="9" strokeWidth="3" />
+    </svg>
+  );
+}
 
 function ReplyIcon() {
   return (

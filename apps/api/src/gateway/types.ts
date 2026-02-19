@@ -34,6 +34,9 @@ export enum GatewayEvent {
   POST_VOTE = "POST_VOTE",
   MEMBER_BAN = "MEMBER_BAN",
   MEMBER_UNBAN = "MEMBER_UNBAN",
+  REACTION_ADD = "REACTION_ADD",
+  REACTION_REMOVE = "REACTION_REMOVE",
+  DM_MESSAGE_CREATE = "DM_MESSAGE_CREATE",
 }
 
 // Wire format: every message is { op, d, t?, s? }

@@ -77,7 +77,13 @@ export interface Message {
   editedAt: string | null;
   deleted: boolean;
   createdAt: string;
-  reactions: Record<string, unknown>;
+  reactions: Reaction[];
+}
+
+export interface Reaction {
+  emoji: string;
+  count: number;
+  userIds: string[];
 }
 
 export interface AppError {
@@ -139,6 +145,37 @@ export interface Ban {
 export type ServiceResult<T> =
   | { data: T; error: null }
   | { data: null; error: AppError };
+
+export interface DmChannel {
+  id: string;
+  createdAt: string;
+  participant: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+    status: string;
+  };
+  lastMessage?: {
+    content: string;
+    createdAt: string;
+  };
+}
+
+export interface DmMessage {
+  id: string;
+  dmChannelId: string;
+  authorId: string;
+  content: string;
+  attachments: unknown[];
+  editedAt: string | null;
+  createdAt: string;
+  author?: {
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+}
 
 // --- Cloud Community Types ---
 

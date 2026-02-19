@@ -6,6 +6,8 @@ import { useServerStore } from "../stores/serverStore.js";
 import { useAuthStore } from "../stores/authStore.js";
 import { useUnreadStore } from "../stores/unreadStore.js";
 import { useThreadStore, type Thread, type ThreadMessage } from "../stores/threadStore.js";
+import { useReactionStore } from "../stores/reactionStore.js";
+import { useDmStore, type DmMessage } from "../stores/dmStore.js";
 import { offlineSync } from "../utils/offlineSync.js";
 
 type GatewayPayload = {
@@ -192,6 +194,19 @@ class WebSocketClient {
         break;
       case "THREAD_MESSAGE_CREATE":
         useThreadStore.getState().addThreadMessage(data as unknown as ThreadMessage);
+        break;
+      case "REACTION_ADD":
+        useReactionStore.getState().handleReactionAdd(
+          data as { messageId: string; channelId: string; userId: string; emoji: string },
+        );
+        break;
+      case "REACTION_REMOVE":
+        useReactionStore.getState().handleReactionRemove(
+          data as { messageId: string; channelId: string; userId: string; emoji: string },
+        );
+        break;
+      case "DM_MESSAGE_CREATE":
+        useDmStore.getState().addDmMessage(data as unknown as DmMessage);
         break;
     }
   }

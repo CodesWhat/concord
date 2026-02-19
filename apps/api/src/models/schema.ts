@@ -27,3 +27,12 @@ export {
 // export { communities, communitiesRelations } from "./communities.js";
 // export { subscriptions, subscriptionsRelations } from "./subscriptions.js";
 export { bans, bansRelations } from "./bans.js";
+export { reactions, reactionsRelations } from "./reactions.js";
+export {
+  dmChannels,
+  dmParticipants,
+  dmMessages,
+  dmChannelsRelations,
+  dmParticipantsRelations,
+  dmMessagesRelations,
+} from "./dm-channels.js";
