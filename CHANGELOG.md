@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Kick/ban members with role hierarchy enforcement (cannot kick/ban above your own role)
+- Leave server functionality with transaction safety
+- Rate limiting via @fastify/rate-limit — global defaults and per-route overrides
+- Slowmode enforcement on messages — configurable per channel, enforced server-side
+- Password reset flow — forgot-password and reset-password pages with token-based email links
+- Configurable SMTP for email delivery via nodemailer (SMTP_HOST/PORT/USER/PASS/FROM)
+- Auto-migration on API startup — Drizzle migrator runs automatically, no manual DB setup
+- Bans table and migration
+- User profiles — bio field, GET /users/:userId, avatar upload to S3
+- Forum frontend — post list, detail view, voting, comments
+- Forum backend — posts, voting, comments, gateway events (FORUM_POST_CREATE, FORUM_VOTE, FORUM_COMMENT_CREATE)
+- Push notifications for @mentions via Web Push API (VAPID keys configurable)
+- Member context menu with kick/ban actions
+- Server settings bans tab with unban capability
+- Leave server button in server settings
+- MEMBER_BAN and MEMBER_LEAVE gateway events broadcast to server members
+- CODE_OF_CONDUCT.md and CONTRIBUTING.md for public launch
+
+### Fixed
+
+- Password reset API path corrected from /forget-password to /request-password-reset
+- Leave server operation wrapped in transaction for atomicity
+- Rate limit keyGenerator safe-cast for pre-auth requests (avoids crash on missing session)
+- Ban dialog cancel buttons now close only the dialog, not the entire context menu
+- Null-safe ban.user access in server settings bans tab
+- Missing communities/subscriptions model exports (commented out, deferred to Phase 2)
+- Forum routes now have explicit per-route rate limits
+- Server members endpoint limit clamped to 1–200 to prevent unbounded queries
+- Display name length validation on profile update
+- Password reset tokens no longer logged in production environments
+- Removed dead middleware/auth.ts file
+
+### Changed
+
+- Deployment config: CORS origins, auth URLs, and secrets now fully env-driven
+- .env.example updated to reflect current variable names
+
 ## [0.2.0] - 2026-02-17
 
 ### Added

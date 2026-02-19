@@ -9,7 +9,7 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/CodesWhat/concord/releases"><img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version"></a>
+  <a href="https://github.com/CodesWhat/concord/releases"><img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-C9A227" alt="License AGPL-3.0"></a>
   <a href="https://github.com/CodesWhat/concord"><img src="https://img.shields.io/badge/status-alpha-orange" alt="Status"></a>
 </p>
@@ -23,27 +23,181 @@
 
 <br>
 
-> **Concord** is a self-hostable, open source community chat platform. Familiar enough to feel like home, better enough to justify the switch. One `docker compose up` to own your community's data.
+> **Concord** is a self-hosted, open-source Discord alternative. Familiar enough to feel like home, better enough to justify the switch. One `docker compose up` to own your community's data. AGPL-3.0, no CLA.
+
+<br>
+
+<!-- TODO: Add screenshot -->
+![Concord Chat](docs/screenshot.png)
 
 <br>
 
 <h3 align="center">Contents</h3>
 
-- [Quick Start](#quick-start)
+- [What is Concord?](#what-is-concord)
+- [Quick Start (Self-Host)](#quick-start-self-host)
 - [Features](#features)
-- [Architecture](#architecture)
+- [Configuration](#configuration)
 - [Development](#development)
-- [Roadmap](#roadmap)
+- [Architecture](#architecture)
 - [Contributing](#contributing)
-- [Documentation](#documentation)
+- [License](#license)
 
 ---
 
 <br>
 
-<h3 align="center" id="quick-start">Quick Start</h3>
+<h3 align="center" id="what-is-concord">What is Concord?</h3>
 
-**Prerequisites:** Node.js 22+, pnpm 9+, Docker (for Postgres + Redis)
+Concord is a self-hosted, open-source community platform built as a drop-in Discord replacement. Run it on your own server in minutes with a single `docker compose up`. You own your data, your community, and your future — no vendor lock-in, no data mining, no proprietary walls.
+
+It ships with real-time chat, forum channels (Reddit-style), file uploads, role-based permissions, push notifications, and more. AGPL-3.0 licensed with no CLA — your contributions stay yours and can never be relicensed.
+
+---
+
+<br>
+
+<h3 align="center" id="quick-start-self-host">Quick Start (Self-Host)</h3>
+
+**Prerequisites:** Docker and Docker Compose.
+
+```bash
+git clone https://github.com/CodesWhat/concord.git
+cd concord
+docker compose -f docker/docker-compose.yml up -d
+```
+
+Then open [http://localhost:8080](http://localhost:8080). The database migrates automatically on startup — no manual setup needed.
+
+**Optional configuration:** Copy `apps/api/.env.example` to `apps/api/.env` and set your SMTP credentials for email delivery, S3 details for file uploads, and VAPID keys for push notifications. See the [Configuration](#configuration) section for all available variables.
+
+<details>
+<summary><strong>Default seed accounts</strong></summary>
+
+| Email | Password | Role |
+| --- | --- | --- |
+| `admin@concord.local` | `password123` | Server owner |
+| `testuser@concord.local` | `password123` | Member |
+
+</details>
+
+---
+
+<br>
+
+<h3 align="center" id="features">Features</h3>
+
+<details>
+<summary><strong>Chat & Messaging</strong></summary>
+
+- **Real-time messaging** — WebSocket gateway with instant delivery, edit, delete, and "(edited)" tags
+- **Threads** — Threaded replies within channels
+- **Typing indicators** — Animated "X is typing..." bar with 8-second auto-expire
+- **Presence tracking** — Live online/idle/DND/invisible status synced across all clients
+- **Markdown rendering** — Code blocks, links, lists, tables, task lists via react-markdown
+- **Unread tracking** — Per-channel unread counts with mention badges
+- **Slowmode** — Per-channel message rate limiting enforced server-side
+
+</details>
+
+<details>
+<summary><strong>Files & Media</strong></summary>
+
+- **File uploads** — Drag and drop, paste, or click to upload; S3-backed storage
+- **Avatar upload** — User profile avatars stored in S3
+
+</details>
+
+<details>
+<summary><strong>Forum Channels</strong></summary>
+
+- **Reddit-style forums** — Forum channel type alongside text channels
+- **Voting** — Upvote/downvote posts with live vote counts
+- **Comments** — Nested comments on forum posts
+- **Post management** — Create, edit, and delete forum posts
+
+</details>
+
+<details>
+<summary><strong>Roles & Permissions</strong></summary>
+
+- **Role-based permissions** — Bitmask permission system with named roles
+- **Channel overrides** — Per-channel permission overrides per role
+- **Role hierarchy** — Enforcement prevents users from acting above their role
+- **Kick & ban** — Kick or ban members with hierarchy checks; ban list with unban support
+
+</details>
+
+<details>
+<summary><strong>Servers & Invites</strong></summary>
+
+- **Server management** — Create, join, edit, and delete servers
+- **Invite links** — Shareable invite codes with configurable expiry and usage limits
+- **Leave server** — Members can leave servers; wrapped in a transaction for safety
+
+</details>
+
+<details>
+<summary><strong>Notifications & Communication</strong></summary>
+
+- **Push notifications** — Web Push for @mentions; works on desktop and mobile
+- **Password reset** — Email-based forgot-password flow via configurable SMTP
+
+</details>
+
+<details>
+<summary><strong>User Experience</strong></summary>
+
+- **User profiles** — Bio, avatar, display name, status
+- **Quick switcher** — Cmd+K fuzzy search across servers and channels
+- **PWA installable** — Install as a native app on desktop and mobile
+- **Responsive UI** — 4-panel desktop layout with mobile-optimized bottom navigation
+
+</details>
+
+<details>
+<summary><strong>Operations</strong></summary>
+
+- **Auto-migration** — Database migrations run automatically on API startup
+- **Rate limiting** — Global and per-route rate limits via @fastify/rate-limit
+- **S3-compatible storage** — Works with MinIO, Cloudflare R2, AWS S3, or any compatible provider
+
+</details>
+
+---
+
+<br>
+
+<h3 align="center" id="configuration">Configuration</h3>
+
+Copy `apps/api/.env.example` to `apps/api/.env` and configure as needed:
+
+| Variable | Description |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string |
+| `AUTH_SECRET` | Secret for session/auth token signing (required) |
+| `CORS_ORIGIN` | Allowed frontend origin (e.g. `https://concord.example.com`) |
+| `SMTP_HOST` | SMTP server host for email delivery |
+| `SMTP_PORT` | SMTP server port (typically 587 or 465) |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASS` | SMTP password |
+| `SMTP_FROM` | From address for outgoing emails |
+| `S3_ENDPOINT` | S3-compatible storage endpoint (e.g. `https://s3.amazonaws.com`) |
+| `S3_BUCKET` | Storage bucket name |
+| `S3_ACCESS_KEY` | Storage access key |
+| `S3_SECRET_KEY` | Storage secret key |
+| `VAPID_PUBLIC_KEY` | VAPID public key for Web Push notifications |
+| `VAPID_PRIVATE_KEY` | VAPID private key for Web Push notifications |
+| `VAPID_SUBJECT` | VAPID subject (e.g. `mailto:admin@example.com`) |
+
+---
+
+<br>
+
+<h3 align="center" id="development">Development</h3>
+
+**Prerequisites:** Node.js 22+, pnpm 10+, Docker (for Postgres, Redis, and MinIO)
 
 ```bash
 # Clone
@@ -71,36 +225,29 @@ pnpm dev
 
 Then open [http://localhost:5173](http://localhost:5173) — the API runs on port 3000, proxied through Vite.
 
-<details>
-<summary><strong>Default seed accounts</strong></summary>
+```bash
+# Run all apps in dev mode (web + api)
+pnpm dev
 
-| Email | Password | Role |
-| --- | --- | --- |
-| `admin@concord.local` | `password123` | Server owner |
-| `testuser@concord.local` | `password123` | Member |
+# Build all packages
+pnpm build
 
-</details>
+# Run database migrations
+cd apps/api && pnpm drizzle-kit push
 
----
-
-<br>
-
-<h3 align="center" id="features">Features</h3>
-
-Real-time text chat with a Discord-familiar interface, built from scratch with modern tooling.
+# Generate a new migration
+cd apps/api && pnpm drizzle-kit generate
+```
 
 <details>
-<summary><strong>What's included in v0.1.0</strong></summary>
+<summary><strong>Project conventions</strong></summary>
 
-- **Authentication** — Email/password signup and login via Better Auth with session management
-- **Server Management** — Create, join, and manage community servers with roles and permissions
-- **Channels** — Text channels organized in collapsible categories
-- **Real-time Messaging** — WebSocket gateway with instant message delivery and presence tracking
-- **Permission System** — Bitmask-based role permissions (manage server, manage channels, kick/ban members, etc.)
-- **Invite System** — Shareable invite codes with expiration and usage limits
-- **Snowflake IDs** — Twitter-style 64-bit sortable IDs for messages (custom epoch 2026-01-01)
-- **Responsive UI** — Desktop 4-panel layout with mobile-optimized views and bottom navigation
-- **PWA Ready** — Web app manifest, favicons, and mobile-first meta tags
+- **Small, single-purpose files** — No file exceeds ~300 lines
+- **Explicit types** — No `any`, typed parameters and return types everywhere
+- **One route per file** — `routes/messages.ts` handles all message endpoints
+- **Service layer separation** — Routes handle HTTP, services handle business logic
+- **`ServiceResult<T>` pattern** — `{ data, error }` tuples instead of thrown exceptions
+- **Colocated tests** — `routes/messages.ts` → `routes/messages.test.ts`
 
 </details>
 
@@ -120,7 +267,7 @@ concord/
 ├── packages/
 │   ├── shared/       # Shared types, permissions, snowflake utilities
 │   └── config/       # Shared ESLint + TypeScript config
-└── docker/           # Docker Compose for dev services
+└── docker/           # Docker Compose for dev and production
 ```
 
 | Layer | Technology |
@@ -130,77 +277,8 @@ concord/
 | Database | PostgreSQL 17, Redis 7 |
 | Auth | Better Auth (session-based, Drizzle adapter) |
 | Real-time | WebSocket (`ws`), Redis pub/sub for fan-out |
-| IDs | Snowflake (64-bit, custom epoch) |
-
----
-
-<br>
-
-<h3 align="center" id="development">Development</h3>
-
-```bash
-# Run all apps in dev mode (web + api)
-pnpm dev
-
-# Build all packages
-pnpm build
-
-# Run database migrations
-cd apps/api && pnpm drizzle-kit push
-
-# Generate a new migration
-cd apps/api && pnpm drizzle-kit generate
-
-# Seed the database
-cd apps/api && pnpm tsx src/seed.ts
-```
-
-<details>
-<summary><strong>Environment variables</strong></summary>
-
-Copy `apps/api/.env.example` to `apps/api/.env`. All variables:
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `DATABASE_URL` | `postgres://concord:concord@localhost:5432/concord` | PostgreSQL connection string |
-| `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
-| `JWT_SECRET` | — | Secret for auth token signing |
-| `LIVEKIT_URL` | — | LiveKit server URL (Phase 2) |
-| `LIVEKIT_API_KEY` | — | LiveKit API key (Phase 2) |
-| `LIVEKIT_API_SECRET` | — | LiveKit API secret (Phase 2) |
-| `S3_ENDPOINT` | — | S3-compatible storage endpoint (Phase 1) |
-| `S3_BUCKET` | — | Storage bucket name |
-| `S3_ACCESS_KEY` | — | Storage access key |
-| `S3_SECRET_KEY` | — | Storage secret key |
-
-</details>
-
-<details>
-<summary><strong>Project conventions</strong></summary>
-
-- **Small, single-purpose files** — No file exceeds ~300 lines
-- **Explicit types** — No `any`, typed parameters and return types everywhere
-- **One route per file** — `routes/messages.ts` handles all message endpoints
-- **Service layer separation** — Routes handle HTTP, services handle business logic
-- **`ServiceResult<T>` pattern** — `{ data, error }` tuples instead of thrown exceptions
-- **Colocated tests** — `routes/messages.ts` → `routes/messages.test.ts`
-
-</details>
-
----
-
-<br>
-
-<h3 align="center" id="roadmap">Roadmap</h3>
-
-| Version | Phase | Highlights |
-| --- | --- | --- |
-| **v0.1.0** | Foundation | Auth, database, REST API, WebSocket gateway, chat UI |
-| **v0.2.0** | Chat MVP | Threads, file uploads, enhanced permissions, invite flow, PWA shell |
-| **v0.3.0** | Forum Channels | Reddit-style forum channel type with upvotes, nested comments, public readability toggle |
-| **v0.4.0** | Voice & Moderation | LiveKit voice/video, screensharing, mod tools, automod, push notifications |
-| **v0.5.0** | Polish & Scale | Performance, bot API, search with operators, knowledge base features |
-| **v1.0.0** | Ecosystem | Discord migration tools, E2EE for DMs, plugin system, custom themes |
+| IDs | Snowflake (64-bit, custom epoch 2026-01-01) |
+| Storage | S3-compatible (MinIO, AWS S3, Cloudflare R2) |
 
 ---
 
@@ -208,26 +286,17 @@ Copy `apps/api/.env.example` to `apps/api/.env`. All variables:
 
 <h3 align="center" id="contributing">Contributing</h3>
 
-Contributions are welcome! This project is AGPL-3.0 with **no CLA** — your contributions can never be relicensed.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, code style, and the PR process.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feat/amazing-feature`)
-3. Commit using [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, etc.)
-4. Push and open a Pull Request
+This project is AGPL-3.0 with **no CLA** — your contributions can never be relicensed.
 
 ---
 
 <br>
 
-<h3 align="center" id="documentation">Documentation</h3>
+<h3 align="center" id="license">License</h3>
 
-| Resource | Link |
-| --- | --- |
-| Roadmap | [ROADMAP.md](ROADMAP.md) |
-| Specification | [spec.md](spec.md) |
-| Changelog | [CHANGELOG.md](CHANGELOG.md) |
-| Issues | [GitHub Issues](https://github.com/CodesWhat/concord/issues) |
-| Discussions | [GitHub Discussions](https://github.com/CodesWhat/concord/discussions) |
+[AGPL-3.0](LICENSE) — no CLA. By contributing, you agree your contributions will be licensed under the same terms. Your code stays yours.
 
 ---
 
