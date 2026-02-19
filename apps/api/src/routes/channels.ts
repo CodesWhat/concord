@@ -15,6 +15,12 @@ export default async function channelRoutes(app: FastifyInstance) {
   app.post<{ Params: { serverId: string }; Body: { name: string; type?: "text" | "voice" | "announcement" | "stage"; categoryId?: string } }>(
     "/servers/:serverId/channels",
     {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: "1 minute",
+        },
+      },
       preHandler: [
         requireAuth,
         requireMember((req) => (req.params as { serverId: string }).serverId),
@@ -97,6 +103,12 @@ export default async function channelRoutes(app: FastifyInstance) {
   app.post<{ Params: { channelId: string } }>(
     "/channels/:channelId/typing",
     {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: "1 minute",
+        },
+      },
       preHandler: [
         requireAuth,
         requireChannelPermission(Permissions.SEND_MESSAGES),

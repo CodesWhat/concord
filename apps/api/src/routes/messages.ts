@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { eq, and, desc } from "drizzle-orm";
 import {
   requireAuth,
   requireChannelPermission,
@@ -6,20 +7,67 @@ import {
   getServerIdFromChannel,
 } from "../middleware/permissions.js";
 import * as messageService from "../services/messages.js";
-import { Permissions } from "@concord/shared";
+import { hasPermission, Permissions } from "@concord/shared";
 import { dispatchToChannel, GatewayEvent } from "../gateway/index.js";
+import { db } from "../db.js";
+import { channels, messages } from "../models/schema.js";
 
 export default async function messageRoutes(app: FastifyInstance) {
   // POST /channels/:channelId/messages — Send message
   app.post<{ Params: { channelId: string }; Body: { content: string; replyToId?: string; attachments?: unknown[] } }>(
     "/channels/:channelId/messages",
     {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: "1 minute",
+        },
+      },
       preHandler: [
         requireAuth,
         requireChannelPermission(Permissions.SEND_MESSAGES),
       ],
     },
     async (request, reply) => {
+      // Enforce slowmode
+      const [channel] = await db
+        .select({ slowmodeSeconds: channels.slowmodeSeconds })
+        .from(channels)
+        .where(eq(channels.id, request.params.channelId))
+        .limit(1);
+
+      if (channel && channel.slowmodeSeconds > 0) {
+        const canBypass =
+          request.memberPermissions !== undefined &&
+          (hasPermission(request.memberPermissions, Permissions.MANAGE_MESSAGES) ||
+            hasPermission(request.memberPermissions, Permissions.ADMINISTRATOR));
+
+        if (!canBypass) {
+          const [lastMsg] = await db
+            .select({ createdAt: messages.createdAt })
+            .from(messages)
+            .where(
+              and(
+                eq(messages.channelId, request.params.channelId),
+                eq(messages.authorId, request.userId),
+                eq(messages.deleted, false),
+              ),
+            )
+            .orderBy(desc(messages.createdAt))
+            .limit(1);
+
+          if (lastMsg) {
+            const elapsed = (Date.now() - new Date(lastMsg.createdAt).getTime()) / 1000;
+            if (elapsed < channel.slowmodeSeconds) {
+              const wait = Math.ceil(channel.slowmodeSeconds - elapsed);
+              return reply.code(429).send({
+                error: { code: "SLOWMODE", message: `Slow mode active. Wait ${wait} seconds.`, statusCode: 429 },
+              });
+            }
+          }
+        }
+      }
+
       const { content, replyToId, attachments } = request.body;
       const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
       if ((!content || content.trim().length === 0) && !hasAttachments) {

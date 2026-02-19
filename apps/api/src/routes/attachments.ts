@@ -38,6 +38,12 @@ export default async function attachmentRoutes(app: FastifyInstance) {
   app.post<{ Params: { channelId: string } }>(
     "/channels/:channelId/attachments",
     {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: "1 minute",
+        },
+      },
       preHandler: [
         requireAuth,
         requireChannelPermission(Permissions.ATTACH_FILES),
