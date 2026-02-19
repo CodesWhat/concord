@@ -76,7 +76,13 @@ export default async function userRoutes(app: FastifyInstance) {
     { preHandler: [requireAuth] },
     async (request, reply) => {
       const updates: Record<string, unknown> = {};
-      if (request.body.displayName !== undefined) updates.displayName = request.body.displayName.trim();
+      if (request.body.displayName !== undefined) {
+        const trimmed = request.body.displayName.trim();
+        if (trimmed.length === 0 || trimmed.length > 64) {
+          return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "Display name must be 1-64 characters", status: 400 } });
+        }
+        updates.displayName = trimmed;
+      }
       if (request.body.avatarUrl !== undefined) updates.avatarUrl = request.body.avatarUrl;
       if (request.body.bio !== undefined) {
         if (request.body.bio.length > 500) {

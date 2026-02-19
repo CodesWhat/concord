@@ -37,9 +37,10 @@ export const auth = betterAuth({
           text: `Click this link to reset your password: ${url}\n\nIf you didn't request this, ignore this email.`,
           html: `<p>Click <a href="${url}">here</a> to reset your Concord password.</p><p>If you didn't request this, ignore this email.</p>`,
         });
-      } else {
+      } else if (config.isDev) {
         console.log(`[AUTH] Password reset for ${user.email}: ${url}`);
-        console.log("[AUTH] Set SMTP_HOST to enable email delivery");
+      } else {
+        console.warn("[AUTH] SMTP not configured — password reset email not sent. Set SMTP_HOST to enable.");
       }
     },
   },

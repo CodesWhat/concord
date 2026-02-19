@@ -45,6 +45,7 @@ export default async function forumRoutes(app: FastifyInstance) {
   }>(
     "/channels/:channelId/posts",
     {
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
       preHandler: [
         requireAuth,
         requireChannelPermission(Permissions.SEND_MESSAGES),
@@ -165,7 +166,7 @@ export default async function forumRoutes(app: FastifyInstance) {
     Body: { value: number };
   }>(
     "/posts/:postId/vote",
-    { preHandler: [requireAuth] },
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } }, preHandler: [requireAuth] },
     async (request, reply) => {
       const { value } = request.body;
       if (value !== 1 && value !== -1 && value !== 0) {
@@ -223,7 +224,7 @@ export default async function forumRoutes(app: FastifyInstance) {
     Body: { content: string };
   }>(
     "/posts/:postId/comments",
-    { preHandler: [requireAuth] },
+    { config: { rateLimit: { max: 20, timeWindow: "1 minute" } }, preHandler: [requireAuth] },
     async (request, reply) => {
       const { content } = request.body;
       if (!content || content.trim().length === 0) {

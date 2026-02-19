@@ -184,6 +184,7 @@ export async function getServerMembers(
   user: { username: string; displayName: string; avatarUrl: string | null; status: string };
   roles: Array<{ id: string; name: string; color: string | null; position: number }>;
 }>>> {
+  const clampedLimit = Math.min(Math.max(limit, 1), 200);
   let query = db
     .select({
       userId: serverMembers.userId,
@@ -202,7 +203,7 @@ export async function getServerMembers(
         : eq(serverMembers.serverId, serverId),
     )
     .orderBy(serverMembers.userId)
-    .limit(limit);
+    .limit(clampedLimit);
 
   const members = await query;
 
