@@ -30,6 +30,14 @@ export const config = {
     secretKey: optional("S3_SECRET_KEY", ""),
   },
 
+  smtp: {
+    host: optional("SMTP_HOST", ""),
+    port: Number(optional("SMTP_PORT", "587")),
+    user: optional("SMTP_USER", ""),
+    pass: optional("SMTP_PASS", ""),
+    from: optional("SMTP_FROM", "noreply@concord.local"),
+  },
+
   vapid: {
     subject: optional("VAPID_SUBJECT", "mailto:admin@concord.chat"),
     publicKey: optional("VAPID_PUBLIC_KEY", ""),
