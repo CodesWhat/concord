@@ -18,6 +18,9 @@ import notificationRoutes from "./routes/notifications.js";
 import roleRoutes from "./routes/roles.js";
 import forumRoutes from "./routes/forum.js";
 import banRoutes from "./routes/bans.js";
+import reactionRoutes from "./routes/reactions.js";
+import searchRoutes from "./routes/search.js";
+import dmRoutes from "./routes/dms.js";
 import { initGateway } from "./gateway/index.js";
 import { initBucket } from "./services/s3.js";
 
@@ -109,6 +112,9 @@ await server.register(readStateRoutes, { prefix: "/api/v1" });
 await server.register(notificationRoutes, { prefix: "/api/v1" });
 await server.register(forumRoutes, { prefix: "/api/v1" });
 await server.register(banRoutes, { prefix: "/api/v1" });
+await server.register(reactionRoutes, { prefix: "/api/v1" });
+await server.register(searchRoutes, { prefix: "/api/v1" });
+await server.register(dmRoutes, { prefix: "/api/v1" });
 
 server.get("/", async () => {
   return { status: "ok", name: "concord-api" };

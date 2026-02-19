@@ -22,6 +22,27 @@
       "when": 1771400000000,
       "tag": "0002_add_bans",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771500000000,
+      "tag": "0003_add_reactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771600000000,
+      "tag": "0005_add_message_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771700000000,
+      "tag": "0006_add_dms",
+      "breakpoints": true
     }
   ]
 }

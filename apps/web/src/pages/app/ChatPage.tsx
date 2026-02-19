@@ -5,6 +5,7 @@ import MessageArea from "../../components/MessageArea";
 import MemberSidebar from "../../components/MemberSidebar";
 import MobileNav from "../../components/MobileNav";
 import QuickSwitcher from "../../components/QuickSwitcher";
+import SearchPanel from "../../components/SearchPanel";
 import { useServerStore } from "../../stores/serverStore";
 import { useChannelStore } from "../../stores/channelStore";
 import { useMessageStore } from "../../stores/messageStore";
@@ -57,6 +58,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-dvh flex-col">
       <QuickSwitcher />
+      <SearchPanel />
       <div className="flex flex-1 overflow-hidden">
         <ServerRail />
 

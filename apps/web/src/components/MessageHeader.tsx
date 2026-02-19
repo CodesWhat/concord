@@ -1,3 +1,5 @@
+import { useSearchStore } from "../stores/searchStore.js";
+
 export default function MessageHeader({
   channelName,
   topic,
@@ -9,6 +11,7 @@ export default function MessageHeader({
   onToggleMembers: () => void;
   membersVisible: boolean;
 }) {
+  const openSearch = useSearchStore((s) => s.open);
   return (
     <div className="flex h-12 items-center border-b border-border px-4">
       <div className="flex items-center gap-2">
@@ -23,7 +26,7 @@ export default function MessageHeader({
       </div>
 
       <div className="ml-auto flex items-center gap-1">
-        <HeaderIconButton title="Search"><SearchIcon /></HeaderIconButton>
+        <HeaderIconButton title="Search (Ctrl+F)" onClick={openSearch}><SearchIcon /></HeaderIconButton>
         <HeaderIconButton title="Pinned Messages"><PinIcon /></HeaderIconButton>
         <HeaderIconButton
           title="Toggle Members"
