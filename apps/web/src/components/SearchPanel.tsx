@@ -4,6 +4,29 @@ import { useServerStore } from "../stores/serverStore.js";
 import { useChannelStore } from "../stores/channelStore.js";
 import { useMessageStore } from "../stores/messageStore.js";
 
+/**
+ * Sanitize highlight HTML from ts_headline: escape all HTML except <mark>/<\/mark> tags.
+ * This prevents XSS from user-generated content while preserving search highlights.
+ */
+function sanitizeHighlight(html: string): string {
+  // Replace <mark> and </mark> with placeholders
+  let safe = html
+    .replace(/<mark>/g, "__MARK_OPEN__")
+    .replace(/<\/mark>/g, "__MARK_CLOSE__");
+  // Escape all remaining HTML entities
+  safe = safe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+  // Restore mark tags
+  safe = safe
+    .replace(/__MARK_OPEN__/g, "<mark>")
+    .replace(/__MARK_CLOSE__/g, "</mark>");
+  return safe;
+}
+
 export default function SearchPanel() {
   const { isOpen, results, isSearching, query, search, clearSearch, close } =
     useSearchStore();
@@ -204,7 +227,7 @@ export default function SearchPanel() {
                     {/* Highlighted content */}
                     <div
                       className="text-sm text-text-secondary line-clamp-3 [&_mark]:bg-primary/20 [&_mark]:text-text-primary [&_mark]:rounded-sm [&_mark]:px-0.5"
-                      dangerouslySetInnerHTML={{ __html: result.highlight || result.content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHighlight(result.highlight || result.content) }}
                     />
                   </button>
                 </li>

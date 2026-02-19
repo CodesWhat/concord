@@ -27,9 +27,15 @@ export async function searchMessages(
     before?: string;
     after?: string;
     limit?: number;
+    visibleChannelIds?: string[];
   } = {},
 ): Promise<ServiceResult<SearchResult[]>> {
   const safeLimit = Math.min(Math.max(options.limit ?? 25, 1), 50);
+
+  // If visibleChannelIds was explicitly provided but is empty, user can't see any channels
+  if (options.visibleChannelIds && options.visibleChannelIds.length === 0) {
+    return { data: [], error: null };
+  }
 
   try {
     const tsquery = sql`plainto_tsquery('english', ${query})`;
@@ -57,6 +63,12 @@ export async function searchMessages(
       conditions.push(sql`${messages.createdAt} > ${new Date(options.after)}`);
     }
 
+    if (options.visibleChannelIds && options.visibleChannelIds.length > 0) {
+      conditions.push(
+        sql`${messages.channelId} IN (${sql.join(options.visibleChannelIds.map(id => sql`${id}`), sql`, `)})`,
+      );
+    }
+
     const whereClause = conditions.reduce(
       (acc, cond) => sql`${acc} AND ${cond}`,
     );
@@ -72,7 +84,7 @@ export async function searchMessages(
         avatarUrl: users.avatarUrl,
         content: messages.content,
         createdAt: messages.createdAt,
-        highlight: sql<string>`ts_headline('english', ${messages.content}, ${tsquery}, 'MaxWords=35, MinWords=15')`,
+        highlight: sql<string>`ts_headline('english', ${messages.content}, ${tsquery}, 'StartSel=<mark>, StopSel=</mark>, MaxWords=35, MinWords=15')`,
       })
       .from(messages)
       .innerJoin(channels, eq(messages.channelId, channels.id))
