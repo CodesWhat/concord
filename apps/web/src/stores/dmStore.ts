@@ -1,38 +1,8 @@
 import { create } from "zustand";
 import { api } from "../api/client.js";
+import type { DmChannel, DmMessage } from "@concord/shared";
 
-export interface DmParticipant {
-  id: string;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
-  status: string;
-}
-
-export interface DmChannel {
-  id: string;
-  createdAt: string;
-  participant: DmParticipant;
-  lastMessage?: {
-    content: string;
-    createdAt: string;
-  };
-}
-
-export interface DmMessage {
-  id: string;
-  dmChannelId: string;
-  authorId: string;
-  content: string;
-  attachments: unknown[];
-  editedAt: string | null;
-  createdAt: string;
-  author?: {
-    username: string;
-    displayName: string;
-    avatarUrl: string | null;
-  };
-}
+export type { DmChannel, DmMessage };
 
 interface DmState {
   dmChannels: DmChannel[];
@@ -127,7 +97,9 @@ export const useDmStore = create<DmState>((set, get) => ({
   loadMoreMessages: async (dmChannelId: string) => {
     const { messages } = get();
     if (messages.length === 0) return;
-    const oldestId = messages[0].id;
+    const oldest = messages[0];
+    if (!oldest) return;
+    const oldestId = oldest.id;
     try {
       const older = await api.get<DmMessage[]>(
         `/api/v1/dms/${dmChannelId}/messages?before=${oldestId}&limit=50`,
