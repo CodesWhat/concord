@@ -40,6 +40,8 @@ interface DmState {
   messages: DmMessage[];
   isLoading: boolean;
   isSending: boolean;
+  unreadCounts: Record<string, number>;
+  hasMoreMessages: boolean;
 
   fetchDmChannels: () => Promise<void>;
   openDm: (recipientId: string) => Promise<string | null>;
@@ -47,6 +49,7 @@ interface DmState {
   fetchMessages: (dmChannelId: string) => Promise<void>;
   sendMessage: (dmChannelId: string, content: string) => Promise<void>;
   addDmMessage: (msg: DmMessage) => void;
+  loadMoreMessages: (dmChannelId: string) => Promise<void>;
 }
 
 export const useDmStore = create<DmState>((set, get) => ({
@@ -55,6 +58,8 @@ export const useDmStore = create<DmState>((set, get) => ({
   messages: [],
   isLoading: false,
   isSending: false,
+  unreadCounts: {},
+  hasMoreMessages: false,
 
   fetchDmChannels: async () => {
     set({ isLoading: true });
@@ -87,7 +92,7 @@ export const useDmStore = create<DmState>((set, get) => ({
   },
 
   selectDmChannel: (id: string) => {
-    set({ selectedDmChannelId: id });
+    set((s) => ({ selectedDmChannelId: id, unreadCounts: { ...s.unreadCounts, [id]: 0 } }));
     get().fetchMessages(id);
   },
 
@@ -98,7 +103,7 @@ export const useDmStore = create<DmState>((set, get) => ({
         `/api/v1/dms/${dmChannelId}/messages?limit=50`,
       );
       // API returns newest first, reverse for display (oldest at top)
-      set({ messages: messages.reverse(), isLoading: false });
+      set({ messages: messages.reverse(), isLoading: false, hasMoreMessages: messages.length === 50 });
     } catch (err) {
       console.error("[dmStore] fetchMessages failed:", err);
       set({ isLoading: false });
@@ -116,6 +121,28 @@ export const useDmStore = create<DmState>((set, get) => ({
     } catch (err) {
       console.error("[dmStore] sendMessage failed:", err);
       set({ isSending: false });
+    }
+  },
+
+  loadMoreMessages: async (dmChannelId: string) => {
+    const { messages } = get();
+    if (messages.length === 0) return;
+    const oldestId = messages[0].id;
+    try {
+      const older = await api.get<DmMessage[]>(
+        `/api/v1/dms/${dmChannelId}/messages?before=${oldestId}&limit=50`,
+      );
+      if (older.length === 0) {
+        set({ hasMoreMessages: false });
+        return;
+      }
+      // API returns newest first, reverse for display
+      set((s) => ({
+        messages: [...older.reverse(), ...s.messages],
+        hasMoreMessages: older.length === 50,
+      }));
+    } catch (err) {
+      console.error("[dmStore] loadMoreMessages failed:", err);
     }
   },
 
@@ -145,7 +172,12 @@ export const useDmStore = create<DmState>((set, get) => ({
         };
       }
 
-      return { dmChannels: updatedChannels };
+      // When not viewing this channel, increment unread
+      const prevCount = s.unreadCounts[msg.dmChannelId] ?? 0;
+      return {
+        dmChannels: updatedChannels,
+        unreadCounts: { ...s.unreadCounts, [msg.dmChannelId]: prevCount + 1 },
+      };
     });
   },
 }));

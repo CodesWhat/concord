@@ -10,10 +10,12 @@ function DmChannelRow({
   channel,
   isActive,
   onClick,
+  unreadCount,
 }: {
   channel: DmChannel;
   isActive: boolean;
   onClick: () => void;
+  unreadCount: number;
 }) {
   const { participant } = channel;
   const status = usePresenceStore((s) => s.statuses[participant.id] ?? participant.status);
@@ -70,6 +72,11 @@ function DmChannelRow({
           {formatTime(channel.lastMessage.createdAt)}
         </span>
       )}
+      {unreadCount > 0 && (
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
     </button>
   );
 }
@@ -80,6 +87,7 @@ export default function DmList() {
   const fetchDmChannels = useDmStore((s) => s.fetchDmChannels);
   const selectDmChannel = useDmStore((s) => s.selectDmChannel);
   const isLoading = useDmStore((s) => s.isLoading);
+  const unreadCounts = useDmStore((s) => s.unreadCounts);
   const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
@@ -113,6 +121,7 @@ export default function DmList() {
                 channel={ch}
                 isActive={ch.id === selectedDmChannelId}
                 onClick={() => selectDmChannel(ch.id)}
+                unreadCount={unreadCounts[ch.id] ?? 0}
               />
             ))}
           </div>

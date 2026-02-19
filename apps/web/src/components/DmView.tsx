@@ -178,6 +178,8 @@ export default function DmView() {
   const dmChannels = useDmStore((s) => s.dmChannels);
   const messages = useDmStore((s) => s.messages);
   const isLoading = useDmStore((s) => s.isLoading);
+  const hasMoreMessages = useDmStore((s) => s.hasMoreMessages);
+  const loadMoreMessages = useDmStore((s) => s.loadMoreMessages);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set());
@@ -240,6 +242,14 @@ export default function DmView() {
           </div>
         ) : (
           <div className="flex flex-col py-4">
+            {hasMoreMessages && (
+              <button
+                onClick={() => selectedDmChannelId && loadMoreMessages(selectedDmChannelId)}
+                className="mx-auto my-2 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+              >
+                Load older messages
+              </button>
+            )}
             {messages.map((msg, i) => {
               const prev = i > 0 ? messages[i - 1] : undefined;
               const grouped = isGrouped(msg, prev);
