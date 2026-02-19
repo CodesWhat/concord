@@ -5,6 +5,7 @@ import { RegisterPage } from "./pages/auth/RegisterPage";
 import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import ChatPage from "./pages/app/ChatPage";
+import DmPage from "./pages/app/DmPage";
 import JoinServerPage from "./pages/app/JoinServerPage";
 import { useAuthStore } from "./stores/authStore";
 
@@ -72,6 +73,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dms"
+          element={
+            <ProtectedRoute>
+              <DmPage />
             </ProtectedRoute>
           }
         />

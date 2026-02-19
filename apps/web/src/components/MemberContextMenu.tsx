@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import { useServerStore } from "../stores/serverStore.js";
 import { useAuthStore } from "../stores/authStore.js";
+import { useDmStore } from "../stores/dmStore.js";
 import { hasPermission, Permissions } from "@concord/shared";
 
 interface MemberContextMenuProps {
@@ -11,6 +13,8 @@ interface MemberContextMenuProps {
 
 export default function MemberContextMenu({ userId, position, onClose }: MemberContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const openDm = useDmStore((s) => s.openDm);
   const selectedServerId = useServerStore((s) => s.selectedServerId);
   const servers = useServerStore((s) => s.servers);
   const members = useServerStore((s) => s.members);
@@ -68,7 +72,16 @@ export default function MemberContextMenu({ userId, position, onClose }: MemberC
     y: Math.min(position.y, window.innerHeight - 120),
   };
 
-  if (!showActions) return null;
+  const handleMessage = async () => {
+    onClose();
+    const channelId = await openDm(userId);
+    if (channelId) {
+      navigate("/dms");
+    }
+  };
+
+  // Show menu if there are moderation actions OR we can message the user (not self)
+  if (!showActions && isSelf) return null;
 
   const handleKick = async () => {
     if (!selectedServerId) return;
@@ -154,6 +167,15 @@ export default function MemberContextMenu({ userId, position, onClose }: MemberC
       className="fixed z-[60] min-w-[160px] rounded-lg bg-bg-sidebar border border-border shadow-xl py-1 animate-scale-in"
       style={{ top: adjustedPosition.y, left: adjustedPosition.x }}
     >
+      {!isSelf && (
+        <button
+          onClick={handleMessage}
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:bg-bg-elevated hover:text-text-primary text-left"
+        >
+          Message
+        </button>
+      )}
+      {showActions && <div className="my-1 h-px bg-border" />}
       {canKick && (
         <button
           onClick={() => setShowKickConfirm(true)}

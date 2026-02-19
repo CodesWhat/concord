@@ -1,24 +1,25 @@
-import { useState } from "react";
+import { useNavigate, useLocation } from "react-router";
 import { useSearchStore } from "../stores/searchStore.js";
 
-type Tab = "home" | "dms" | "activity" | "search" | "profile";
-
 export default function MobileNav() {
-  const [active, setActive] = useState<Tab>("home");
+  const navigate = useNavigate();
+  const location = useLocation();
   const openSearch = useSearchStore((s) => s.open);
 
+  const isDms = location.pathname === "/dms";
+  const isHome = location.pathname === "/app";
+
   const handleSearchTab = () => {
-    setActive("search");
     openSearch();
   };
 
   return (
     <nav className="flex md:hidden h-14 items-center justify-around border-t border-border bg-bg-deepest">
-      <TabButton icon={<HomeIcon />} label="Home" active={active === "home"} onClick={() => setActive("home")} />
-      <TabButton icon={<DmIcon />} label="DMs" active={active === "dms"} onClick={() => setActive("dms")} badge={3} />
-      <TabButton icon={<ActivityIcon />} label="Activity" active={active === "activity"} onClick={() => setActive("activity")} />
-      <TabButton icon={<SearchIcon />} label="Search" active={active === "search"} onClick={handleSearchTab} />
-      <TabButton icon={<ProfileIcon />} label="Profile" active={active === "profile"} onClick={() => setActive("profile")} />
+      <TabButton icon={<HomeIcon />} label="Home" active={isHome} onClick={() => navigate("/app")} />
+      <TabButton icon={<DmIcon />} label="DMs" active={isDms} onClick={() => navigate("/dms")} />
+      <TabButton icon={<ActivityIcon />} label="Activity" active={false} onClick={() => {}} />
+      <TabButton icon={<SearchIcon />} label="Search" active={false} onClick={handleSearchTab} />
+      <TabButton icon={<ProfileIcon />} label="Profile" active={false} onClick={() => {}} />
     </nav>
   );
 }
