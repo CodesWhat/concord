@@ -12,6 +12,11 @@ import { relations } from "drizzle-orm";
 import { channels } from "./channels.js";
 import { users } from "./users.js";
 
+// NOTE: The messages table also has a `search_vector tsvector` column (generated,
+// stored) added via migration 0005_add_message_search.sql. It is maintained
+// automatically by Postgres and referenced only in raw SQL (search service).
+// It is intentionally omitted from the Drizzle schema to avoid type mismatches
+// since Drizzle has no built-in tsvector type.
 export const messages = pgTable(
   "messages",
   {

@@ -137,6 +137,16 @@ try {
   } catch (err) {
     server.log.warn(err, "S3 bucket init failed — file uploads may be unavailable");
   }
+
+  // Auto-seed on first boot if no users exist
+  try {
+    const { autoSeed } = await import("./auto-seed.js");
+    if (await autoSeed()) {
+      server.log.info("Auto-seed complete");
+    }
+  } catch (err) {
+    server.log.warn(err, "Auto-seed check skipped");
+  }
 } catch (err) {
   server.log.error(err);
   process.exit(1);

@@ -14,6 +14,10 @@ import { relations } from "drizzle-orm";
 import { channels } from "./channels.js";
 import { users } from "./users.js";
 
+// NOTE: The forum_posts table also has a `search_vector tsvector` column
+// maintained by Postgres and referenced only in raw SQL (public search service).
+// It is intentionally omitted from the Drizzle schema to avoid type mismatches
+// since Drizzle has no built-in tsvector type.
 export const forumPosts = pgTable(
   "forum_posts",
   {
