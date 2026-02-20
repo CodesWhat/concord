@@ -125,7 +125,10 @@ test("member and role fetch/update/delete flows", async () => {
     return undefined;
   }) as typeof api.post;
 
-  (api as { patch: typeof api.patch }).patch = (async () => makeRole("r1-updated")) as typeof api.patch;
+  (api as { patch: typeof api.patch }).patch = (async () => ({
+    ...makeRole("r2"),
+    name: "role-r2-updated",
+  })) as typeof api.patch;
   (api as { delete: typeof api.delete }).delete = (async () => undefined) as typeof api.delete;
   (api as { put: typeof api.put }).put = (async () => undefined) as typeof api.put;
 
@@ -206,6 +209,14 @@ test("leave, kick, ban, and unban flows return expected booleans", async () => {
     await useServerStore.getState().leaveServer("s1");
     assert.deepEqual(useServerStore.getState().servers.map((s) => s.id), ["s2"]);
     assert.equal(useServerStore.getState().selectedServerId, null);
+
+    useServerStore.setState({
+      servers: [makeServer("s2"), makeServer("s3")],
+      selectedServerId: "s2",
+    });
+    await useServerStore.getState().leaveServer("s3");
+    assert.deepEqual(useServerStore.getState().servers.map((s) => s.id), ["s2"]);
+    assert.equal(useServerStore.getState().selectedServerId, "s2");
 
     assert.equal(await useServerStore.getState().kickMember("s2", "u1"), true);
     assert.equal(await useServerStore.getState().banMember("s2", "u2", "spam"), true);

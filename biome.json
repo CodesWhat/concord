@@ -7,8 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**"],
-    "ignore": ["**/dist", "**/.turbo"]
+    "includes": ["**"]
   },
   "formatter": {
     "enabled": true,
@@ -27,8 +26,10 @@
         "noUnusedVariables": "off"
       },
       "suspicious": {
+        "noAssignInExpressions": "off",
         "noExplicitAny": "off",
-        "noImplicitAnyLet": "off"
+        "noImplicitAnyLet": "off",
+        "useIterableCallbackReturn": "off"
       }
     }
   },
