@@ -3,8 +3,6 @@ import {
   Room,
   RoomEvent,
   Track,
-  RemoteTrackPublication,
-  LocalTrackPublication,
   type RemoteParticipant,
   type LocalParticipant,
   type Participant,

@@ -98,7 +98,7 @@ test("loadMorePosts handles guards, success, and failures", async () => {
   let calls = 0;
   (api as { get: typeof api.get }).get = (async () => {
     calls += 1;
-    if (calls === 1) return [makePost("p2")];
+    if (calls === 1) return Array.from({ length: 25 }, (_, i) => makePost(`p-more-${i}`));
     throw new Error("load more fail");
   }) as typeof api.get;
 
@@ -131,7 +131,8 @@ test("loadMorePosts handles guards, success, and failures", async () => {
     });
     await useForumStore.getState().loadMorePosts("c1");
     assert.equal(calls, 1);
-    assert.equal(useForumStore.getState().posts.length, 2);
+    assert.equal(useForumStore.getState().posts.length, 26);
+    assert.equal(useForumStore.getState().hasMore, true);
 
     await useForumStore.getState().loadMorePosts("c1");
     assert.equal(useForumStore.getState().isLoading, false);
@@ -191,10 +192,18 @@ test("comments and vote flows update related post state", async () => {
     assert.equal(useForumStore.getState().selectedPost?.commentCount, 1);
     assert.equal(useForumStore.getState().posts[0]?.commentCount, 1);
 
+    await useForumStore.getState().createComment("p2", "reply");
+    assert.equal(useForumStore.getState().selectedPost?.commentCount, 1);
+    assert.equal(useForumStore.getState().posts[1]?.commentCount, 1);
+
     await useForumStore.getState().vote("p1", 1);
     assert.equal(useForumStore.getState().selectedPost?.score, 4);
     assert.equal(useForumStore.getState().posts[0]?.upvotes, 5);
-    assert.equal(postCall, 2);
+    assert.equal(postCall, 3);
+
+    useForumStore.setState({ selectedPost: makePost("p2") });
+    await useForumStore.getState().vote("p1", 1);
+    assert.equal(useForumStore.getState().selectedPost?.id, "p2");
 
     (api as { get: typeof api.get }).get = (async () => {
       throw new Error("comments fail");

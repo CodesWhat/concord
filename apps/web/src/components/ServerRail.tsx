@@ -63,7 +63,6 @@ export default function ServerRail() {
   const selectServer = useServerStore((s) => s.selectServer);
   const fetchMembers = useServerStore((s) => s.fetchMembers);
   const fetchChannels = useChannelStore((s) => s.fetchChannels);
-  const createServer = useServerStore((s) => s.createServer);
 
   const handleSelectServer = (id: string) => {
     selectServer(id);

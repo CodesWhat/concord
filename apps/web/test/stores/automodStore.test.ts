@@ -100,7 +100,7 @@ test("createRule and updateRule refresh list and rethrow on failure", async () =
 
 test("deleteRule and toggleRule update local state and rethrow on failures", async () => {
   resetAutomodState();
-  useAutomodStore.setState({ rules: [makeRule("r1"), makeRule("r2")] });
+  useAutomodStore.setState({ rules: [makeRule("r1"), makeRule("r2"), makeRule("r3")] });
   const originalDelete = api.delete;
   const originalPatch = api.patch;
 
@@ -115,11 +115,12 @@ test("deleteRule and toggleRule update local state and rethrow on failures", asy
     await useAutomodStore.getState().deleteRule("s1", "r1");
     assert.deepEqual(
       useAutomodStore.getState().rules.map((r) => r.id),
-      ["r2"],
+      ["r2", "r3"],
     );
 
     await useAutomodStore.getState().toggleRule("s1", "r2", false);
     assert.equal(useAutomodStore.getState().rules[0]?.enabled, false);
+    assert.equal(useAutomodStore.getState().rules[1]?.enabled, true);
 
     (api as { delete: typeof api.delete }).delete = (async () => {
       throw new Error("delete fail");

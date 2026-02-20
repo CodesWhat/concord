@@ -23,9 +23,8 @@ export {
   forumVotes,
   forumVotesRelations,
 } from "./forum-posts.js";
-// Communities and subscriptions are planned for Phase 2 (Concord Cloud).
-// export { communities, communitiesRelations } from "./communities.js";
-// export { subscriptions, subscriptionsRelations } from "./subscriptions.js";
+export { communities, communitiesRelations } from "./communities.js";
+export { subscriptions, subscriptionsRelations } from "./subscriptions.js";
 export { bans, bansRelations } from "./bans.js";
 export { auditLog, auditLogRelations } from "./audit-log.js";
 export { automodRules, automodRulesRelations, automodRuleTypeEnum } from "./automod-rules.js";

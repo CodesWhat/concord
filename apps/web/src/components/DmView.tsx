@@ -1,6 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useDmStore, type DmMessage, type DmChannel } from "../stores/dmStore.js";
-import { useAuthStore } from "../stores/authStore.js";
 import { getAvatarColor } from "../utils/colors.js";
 import { formatTime } from "../utils/format.js";
 import Markdown from "./Markdown.js";

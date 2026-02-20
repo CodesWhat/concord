@@ -82,6 +82,11 @@ test("addFiles/removeFile/clearFiles manage previews", () => {
     useUploadStore.getState().clearFiles();
     assert.deepEqual(useUploadStore.getState().pendingFiles, []);
     assert.deepEqual(useUploadStore.getState().uploadProgress, {});
+
+    const secondImage = new File(["img2"], "image2.png", { type: "image/png" });
+    useUploadStore.getState().addFiles([secondImage]);
+    useUploadStore.getState().clearFiles();
+    assert.equal(revoked.includes("blob:image2.png"), true);
   } finally {
     (URL as { createObjectURL: typeof URL.createObjectURL }).createObjectURL =
       originalCreateObjectURL;
