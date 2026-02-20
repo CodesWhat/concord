@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db.js";
 import { servers } from "../models/schema.js";
 import { dispatchToServer, GatewayEvent } from "../gateway/index.js";
+import { logAction, AuditAction } from "../services/audit.js";
 
 export default async function serverRoutes(app: FastifyInstance) {
   // POST / — Create server
@@ -71,6 +72,7 @@ export default async function serverRoutes(app: FastifyInstance) {
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }
+      logAction(request.params.id, request.userId, AuditAction.SERVER_UPDATE, "server", request.params.id, request.body as Record<string, unknown>);
       return result.data;
     },
   );

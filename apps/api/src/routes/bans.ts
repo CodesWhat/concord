@@ -7,6 +7,7 @@ import {
 import { Permissions } from "@concord/shared";
 import * as banService from "../services/bans.js";
 import { dispatchToServer, GatewayEvent } from "../gateway/index.js";
+import { logAction, AuditAction } from "../services/audit.js";
 
 export default async function banRoutes(app: FastifyInstance) {
   // POST /servers/:serverId/members/:memberId/kick
@@ -31,6 +32,7 @@ export default async function banRoutes(app: FastifyInstance) {
         userId: memberId,
         serverId,
       });
+      logAction(serverId, request.userId, AuditAction.MEMBER_KICK, "user", memberId);
 
       return reply.code(200).send(result.data);
     },
@@ -59,6 +61,7 @@ export default async function banRoutes(app: FastifyInstance) {
         userId: memberId,
         serverId,
       });
+      logAction(serverId, request.userId, AuditAction.MEMBER_BAN, "user", memberId, {}, reason);
 
       return reply.code(200).send(result.data);
     },
@@ -86,6 +89,7 @@ export default async function banRoutes(app: FastifyInstance) {
         userId,
         serverId,
       });
+      logAction(serverId, request.userId, AuditAction.MEMBER_UNBAN, "user", userId);
 
       return reply.code(200).send(result.data);
     },

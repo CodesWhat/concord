@@ -10,6 +10,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "../db.js";
 import { servers, roles } from "../models/schema.js";
 import { dispatchToServer, GatewayEvent } from "../gateway/index.js";
+import { logAction, AuditAction } from "../services/audit.js";
 
 export default async function roleRoutes(app: FastifyInstance) {
   // GET /:serverId/roles — List roles
@@ -62,6 +63,7 @@ export default async function roleRoutes(app: FastifyInstance) {
       }
 
       dispatchToServer(request.params.serverId, GatewayEvent.ROLE_CREATE, result.data);
+      logAction(request.params.serverId, request.userId, AuditAction.ROLE_CREATE, "role", result.data!.id, { name: name.trim() });
       return reply.code(201).send(result.data);
     },
   );
@@ -123,6 +125,7 @@ export default async function roleRoutes(app: FastifyInstance) {
       }
 
       dispatchToServer(serverId, GatewayEvent.ROLE_UPDATE, result.data);
+      logAction(serverId, request.userId, AuditAction.ROLE_UPDATE, "role", roleId, request.body as Record<string, unknown>);
       return result.data;
     },
   );
@@ -170,6 +173,7 @@ export default async function roleRoutes(app: FastifyInstance) {
       }
 
       dispatchToServer(serverId, GatewayEvent.ROLE_DELETE, { roleId, serverId });
+      logAction(serverId, request.userId, AuditAction.ROLE_DELETE, "role", roleId);
       return reply.code(200).send(result.data);
     },
   );
