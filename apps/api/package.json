@@ -28,6 +28,7 @@
     "drizzle-orm": "^0.45.1",
     "fastify": "^5.2.1",
     "ioredis": "^5.9.3",
+    "livekit-server-sdk": "^2.15.0",
     "nodemailer": "^8.0.1",
     "postgres": "^3.4.8",
     "web-push": "^3.6.7",
