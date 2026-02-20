@@ -99,7 +99,7 @@ export async function getServerChannels(
 
 export async function updateChannel(
   channelId: string,
-  updates: { name?: string; topic?: string; nsfw?: boolean; slowmodeSeconds?: number },
+  updates: { name?: string; topic?: string; nsfw?: boolean; slowmodeSeconds?: number; isPublic?: boolean },
 ): Promise<ServiceResult<typeof channels.$inferSelect>> {
   const result = await db
     .update(channels)

@@ -10,6 +10,7 @@ interface Channel {
   name: string;
   topic: string | null;
   position: number;
+  isPublic?: boolean;
 }
 
 interface Category {

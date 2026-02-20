@@ -34,6 +34,7 @@ export interface Channel {
   ttlSeconds: number | null;
   slowmodeSeconds: number;
   nsfw: boolean;
+  isPublic: boolean;
   permissionOverrides: Record<string, unknown>;
 }
 

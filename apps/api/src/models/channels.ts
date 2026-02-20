@@ -35,6 +35,7 @@ export const channels = pgTable("channels", {
   ttlSeconds: integer("ttl_seconds"),
   slowmodeSeconds: integer("slowmode_seconds").default(0).notNull(),
   nsfw: boolean("nsfw").default(false).notNull(),
+  isPublic: boolean("is_public").default(false).notNull(),
   permissionOverrides: jsonb("permission_overrides").default({}).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

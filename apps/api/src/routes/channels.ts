@@ -9,6 +9,7 @@ import {
 import * as channelService from "../services/channels.js";
 import { Permissions } from "@concord/shared";
 import { dispatchToChannel, GatewayEvent } from "../gateway/index.js";
+import { logAction, AuditAction } from "../services/audit.js";
 
 export default async function channelRoutes(app: FastifyInstance) {
   // POST /servers/:serverId/channels — Create channel
@@ -41,6 +42,7 @@ export default async function channelRoutes(app: FastifyInstance) {
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }
+      logAction(request.params.serverId, request.userId, AuditAction.CHANNEL_CREATE, "channel", result.data!.id, { name: name.trim() });
       return reply.code(201).send(result.data);
     },
   );
@@ -64,7 +66,7 @@ export default async function channelRoutes(app: FastifyInstance) {
   );
 
   // PATCH /channels/:id — Update channel
-  app.patch<{ Params: { id: string }; Body: { name?: string; topic?: string; nsfw?: boolean; slowmodeSeconds?: number } }>(
+  app.patch<{ Params: { id: string }; Body: { name?: string; topic?: string; nsfw?: boolean; slowmodeSeconds?: number; isPublic?: boolean } }>(
     "/channels/:id",
     {
       preHandler: [
@@ -77,6 +79,8 @@ export default async function channelRoutes(app: FastifyInstance) {
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }
+      const serverId = await getServerIdFromChannel(request.params.id);
+      if (serverId) logAction(serverId, request.userId, AuditAction.CHANNEL_UPDATE, "channel", request.params.id, request.body as Record<string, unknown>);
       return result.data;
     },
   );
@@ -91,10 +95,12 @@ export default async function channelRoutes(app: FastifyInstance) {
       ],
     },
     async (request, reply) => {
+      const serverId = await getServerIdFromChannel(request.params.id);
       const result = await channelService.deleteChannel(request.params.id);
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });
       }
+      if (serverId) logAction(serverId, request.userId, AuditAction.CHANNEL_DELETE, "channel", request.params.id);
       return result.data;
     },
   );
