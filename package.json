@@ -9,14 +9,19 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "test": "pnpm -r --if-present test",
+    "test:coverage": "pnpm -r --if-present test:coverage"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.3.15",
+    "lefthook": "^2.1.1",
     "turbo": "^2.4.4"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
+      "lefthook",
       "sharp"
     ]
   },
