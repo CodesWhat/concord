@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**"]
+    "includes": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json"]
   },
   "formatter": {
     "enabled": true,
@@ -19,17 +19,25 @@
     "rules": {
       "recommended": true,
       "style": {
-        "useNodejsImportProtocol": "off"
+        "useNodejsImportProtocol": "off",
+        "useTemplate": "warn"
       },
       "correctness": {
         "noUnusedFunctionParameters": "off",
-        "noUnusedVariables": "off"
+        "noUnusedVariables": "off",
+        "useExhaustiveDependencies": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
       },
       "suspicious": {
         "noAssignInExpressions": "off",
         "noExplicitAny": "off",
         "noImplicitAnyLet": "off",
         "useIterableCallbackReturn": "off"
+      },
+      "a11y": {
+        "recommended": false
       }
     }
   },
