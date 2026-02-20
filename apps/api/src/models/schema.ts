@@ -27,6 +27,8 @@ export {
 // export { communities, communitiesRelations } from "./communities.js";
 // export { subscriptions, subscriptionsRelations } from "./subscriptions.js";
 export { bans, bansRelations } from "./bans.js";
+export { auditLog, auditLogRelations } from "./audit-log.js";
+export { automodRules, automodRulesRelations, automodRuleTypeEnum } from "./automod-rules.js";
 export { reactions, reactionsRelations } from "./reactions.js";
 export {
   dmChannels,

@@ -7,8 +7,10 @@ import {
   getServerIdFromChannel,
 } from "../middleware/permissions.js";
 import * as messageService from "../services/messages.js";
+import { checkMessage as automodCheck } from "../services/automod.js";
 import { hasPermission, Permissions } from "@concord/shared";
 import { dispatchToChannel, GatewayEvent } from "../gateway/index.js";
+import { logAction, AuditAction } from "../services/audit.js";
 import { db } from "../db.js";
 import { channels, messages } from "../models/schema.js";
 
@@ -76,6 +78,22 @@ export default async function messageRoutes(app: FastifyInstance) {
       if (content && content.length > 4000) {
         return reply.code(400).send({ error: { code: "BAD_REQUEST", message: "Message content too long (max 4000 characters)", status: 400 } });
       }
+
+      // Automod check — resolve serverId early for the check
+      const serverId = await getServerIdFromChannel(request.params.channelId);
+      if (serverId && content) {
+        const automodResult = await automodCheck(serverId, request.userId, content);
+        if (automodResult.blocked) {
+          return reply.code(403).send({
+            error: {
+              code: "AUTOMOD_BLOCKED",
+              message: automodResult.reason ?? "Message blocked by AutoMod",
+              statusCode: 403,
+            },
+          });
+        }
+      }
+
       const result = await messageService.createMessage(
         request.params.channelId,
         request.userId,
@@ -89,7 +107,6 @@ export default async function messageRoutes(app: FastifyInstance) {
       const msg = result.data!;
 
       // Dispatch MESSAGE_CREATE to channel members via gateway
-      const serverId = await getServerIdFromChannel(request.params.channelId);
       if (serverId) {
         dispatchToChannel(serverId, GatewayEvent.MESSAGE_CREATE, msg);
       }
@@ -163,10 +180,23 @@ export default async function messageRoutes(app: FastifyInstance) {
       if (!serverId) {
         return reply.code(404).send({ error: { code: "NOT_FOUND", message: "Channel not found", status: 404 } });
       }
+
+      // Check if this is a mod action (deleting someone else's message)
+      const [msg] = await db
+        .select({ authorId: messages.authorId })
+        .from(messages)
+        .where(and(eq(messages.id, BigInt(request.params.id)), eq(messages.deleted, false)))
+        .limit(1);
+
       const perms = await resolvePermissions(request.userId, serverId);
       const result = await messageService.deleteMessage(request.params.id, request.userId, perms);
       if (result.error) {
         return reply.code(result.error.statusCode).send({ error: result.error });
+      }
+
+      // Audit log only for mod actions (deleting another user's message)
+      if (msg && msg.authorId !== request.userId) {
+        logAction(serverId, request.userId, AuditAction.MESSAGE_DELETE, "message", request.params.id, { channelId: request.params.channelId });
       }
 
       // Dispatch MESSAGE_DELETE to channel members via gateway
