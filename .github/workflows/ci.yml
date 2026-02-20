@@ -37,10 +37,40 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build shared package
+        run: pnpm --filter @concord/shared build
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: apps/api/coverage/lcov.info,apps/web/coverage/lcov.info,packages/shared/coverage/lcov.info
+          flags: api,web,shared
+          fail_ci_if_error: false
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint]
+    needs: [lint, test]
     permissions:
       contents: read
     steps:
