@@ -3,8 +3,6 @@ import {
   Room,
   RoomEvent,
   Track,
-  type RemoteParticipant,
-  type LocalParticipant,
   type Participant,
 } from "livekit-client";
 import { api } from "../api/client.js";
