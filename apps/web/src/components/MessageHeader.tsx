@@ -1,4 +1,5 @@
 import { useSearchStore } from "../stores/searchStore.js";
+import { useActivityStore } from "../stores/activityStore.js";
 
 export default function MessageHeader({
   channelName,
@@ -12,6 +13,8 @@ export default function MessageHeader({
   membersVisible: boolean;
 }) {
   const openSearch = useSearchStore((s) => s.open);
+  const toggleActivity = useActivityStore((s) => s.toggle);
+  const activityOpen = useActivityStore((s) => s.isOpen);
   return (
     <div className="flex h-12 items-center border-b border-border px-4">
       <div className="flex items-center gap-2">
@@ -35,7 +38,7 @@ export default function MessageHeader({
         >
           <MembersIcon />
         </HeaderIconButton>
-        <HeaderIconButton title="Inbox"><InboxIcon /></HeaderIconButton>
+        <HeaderIconButton title="Inbox" active={activityOpen} onClick={toggleActivity}><InboxIcon /></HeaderIconButton>
       </div>
     </div>
   );

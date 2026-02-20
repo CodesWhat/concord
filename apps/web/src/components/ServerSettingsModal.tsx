@@ -5,6 +5,8 @@ import { useChannelStore } from "../stores/channelStore";
 import { useAuthStore } from "../stores/authStore";
 import RoleEditor from "./RoleEditor";
 import ChannelPermissionsEditor from "./ChannelPermissionsEditor";
+import AuditLogPanel from "./AuditLogPanel";
+import AutomodPanel from "./AutomodPanel";
 
 interface ServerSettingsModalProps {
   open: boolean;
@@ -12,7 +14,7 @@ interface ServerSettingsModalProps {
 }
 
 export default function ServerSettingsModal({ open, onClose }: ServerSettingsModalProps) {
-  const [tab, setTab] = useState<"overview" | "channels" | "roles" | "bans">("overview");
+  const [tab, setTab] = useState<"overview" | "channels" | "roles" | "bans" | "automod" | "audit-log">("overview");
   const servers = useServerStore((s) => s.servers);
   const selectedServerId = useServerStore((s) => s.selectedServerId);
   const fetchServers = useServerStore((s) => s.fetchServers);
@@ -94,6 +96,15 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
     }
   };
 
+  const handleTogglePublic = async (channelId: string, currentlyPublic: boolean) => {
+    try {
+      await api.patch(`/api/v1/channels/${channelId}`, { isPublic: !currentlyPublic });
+      await fetchChannels(selectedServerId);
+    } catch (err) {
+      console.error("[ServerSettingsModal] handleTogglePublic failed:", err);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in" onClick={onClose}>
       <div className="flex h-[480px] w-full max-w-xl overflow-hidden rounded-xl bg-bg-sidebar shadow-2xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
@@ -126,13 +137,25 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
           >
             Bans
           </button>
+          <button
+            onClick={() => setTab("automod")}
+            className={`rounded-md px-2 py-1.5 text-left text-sm ${tab === "automod" ? "bg-bg-elevated text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
+          >
+            AutoMod
+          </button>
+          <button
+            onClick={() => setTab("audit-log")}
+            className={`rounded-md px-2 py-1.5 text-left text-sm ${tab === "audit-log" ? "bg-bg-elevated text-text-primary" : "text-text-muted hover:text-text-secondary"}`}
+          >
+            Audit Log
+          </button>
         </div>
 
         {/* Content */}
         <div className="flex flex-1 flex-col p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-text-primary">
-              {tab === "overview" ? "Server Overview" : tab === "channels" ? "Channels" : tab === "roles" ? "Roles" : "Bans"}
+              {tab === "overview" ? "Server Overview" : tab === "channels" ? "Channels" : tab === "roles" ? "Roles" : tab === "bans" ? "Bans" : tab === "automod" ? "AutoMod" : "Audit Log"}
             </h2>
             <button onClick={onClose} className="text-text-muted hover:text-text-secondary text-xl">&times;</button>
           </div>
@@ -248,6 +271,17 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
                       <button
+                        onClick={() => handleTogglePublic(ch.id, !!(ch as unknown as { isPublic?: boolean }).isPublic)}
+                        className={`text-xs ${(ch as unknown as { isPublic?: boolean }).isPublic ? "text-primary" : "text-text-muted hover:text-text-primary"}`}
+                        title={`${(ch as unknown as { isPublic?: boolean }).isPublic ? "Make private" : "Make public"}`}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                      </button>
+                      <button
                         onClick={() => setPermEditorChannel({ id: ch.id, permissionOverrides: (ch as unknown as { permissionOverrides: Record<string, { allow: number; deny: number }> }).permissionOverrides ?? {} })}
                         className="text-text-muted hover:text-text-primary text-xs"
                         title="Permissions"
@@ -344,6 +378,14 @@ export default function ServerSettingsModal({ open, onClose }: ServerSettingsMod
                 </div>
               )}
             </div>
+          )}
+
+          {tab === "automod" && (
+            <AutomodPanel serverId={selectedServerId} />
+          )}
+
+          {tab === "audit-log" && (
+            <AuditLogPanel serverId={selectedServerId} />
           )}
         </div>
       </div>

@@ -21,6 +21,11 @@ import banRoutes from "./routes/bans.js";
 import reactionRoutes from "./routes/reactions.js";
 import searchRoutes from "./routes/search.js";
 import dmRoutes from "./routes/dms.js";
+import voiceRoutes from "./routes/voice.js";
+import publicRoutes from "./routes/public.js";
+import automodRoutes from "./routes/automod.js";
+import auditRoutes from "./routes/audit.js";
+import activityRoutes from "./routes/activity.js";
 import { initGateway } from "./gateway/index.js";
 import { initBucket } from "./services/s3.js";
 
@@ -115,6 +120,11 @@ await server.register(banRoutes, { prefix: "/api/v1" });
 await server.register(reactionRoutes, { prefix: "/api/v1" });
 await server.register(searchRoutes, { prefix: "/api/v1" });
 await server.register(dmRoutes, { prefix: "/api/v1" });
+await server.register(voiceRoutes, { prefix: "/api/v1" });
+await server.register(publicRoutes, { prefix: "/api/v1" });
+await server.register(automodRoutes, { prefix: "/api/v1" });
+await server.register(auditRoutes, { prefix: "/api/v1" });
+await server.register(activityRoutes, { prefix: "/api/v1" });
 
 server.get("/", async () => {
   return { status: "ok", name: "concord-api" };
