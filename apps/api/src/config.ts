@@ -21,6 +21,7 @@ export const config = {
     url: optional("LIVEKIT_URL", ""),
     apiKey: optional("LIVEKIT_API_KEY", ""),
     apiSecret: optional("LIVEKIT_API_SECRET", ""),
+    clientUrl: optional("LIVEKIT_CLIENT_URL", ""),
   },
 
   s3: {

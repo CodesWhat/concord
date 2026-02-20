@@ -8,6 +8,7 @@ import { useUnreadStore } from "../stores/unreadStore.js";
 import { useThreadStore, type Thread, type ThreadMessage } from "../stores/threadStore.js";
 import { useReactionStore } from "../stores/reactionStore.js";
 import { useDmStore, type DmMessage } from "../stores/dmStore.js";
+import { useVoiceStore } from "../stores/voiceStore.js";
 import { offlineSync } from "../utils/offlineSync.js";
 
 type GatewayPayload = {
@@ -207,6 +208,11 @@ class WebSocketClient {
         break;
       case "DM_MESSAGE_CREATE":
         useDmStore.getState().addDmMessage(data as unknown as DmMessage);
+        break;
+      case "VOICE_STATE_UPDATE":
+        useVoiceStore.getState().handleVoiceStateUpdate(
+          data as { serverId: string; channelId: string; userId: string; state?: Record<string, unknown> },
+        );
         break;
     }
   }

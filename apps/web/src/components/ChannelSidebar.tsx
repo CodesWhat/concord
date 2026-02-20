@@ -16,9 +16,12 @@ import { useUnreadStore } from "../stores/unreadStore.js";
 import { Badge } from "./ui/Badge.js";
 import EmptyState from "./EmptyState.js";
 import { getAvatarColor } from "../utils/colors.js";
+import VoiceChannel from "./VoiceChannel.js";
+import VoicePanel from "./VoicePanel.js";
+import { useVoiceStore } from "../stores/voiceStore.js";
 
 interface ChannelItemProps {
-  channel: { id: string; name: string; type: ChannelType };
+  channel: { id: string; name: string; type: ChannelType; isPublic?: boolean };
   isActive: boolean;
   onClick: () => void;
 }
@@ -42,8 +45,15 @@ function ChannelItem({ channel, isActive, onClick }: ChannelItemProps) {
       >
         {channel.name}
       </span>
+      {channel.isPublic && (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-muted ml-auto shrink-0">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+      )}
       {unread.mentionCount > 0 && (
-        <span className="ml-auto">
+        <span className={channel.isPublic ? "" : "ml-auto"}>
           <Badge count={unread.mentionCount} />
         </span>
       )}
@@ -56,11 +66,13 @@ function CategorySection({
   channels,
   activeChannelId,
   onSelectChannel,
+  onJoinVoice,
 }: {
   categoryName: string;
-  channels: Array<{ id: string; name: string; type: ChannelType }>;
+  channels: Array<{ id: string; name: string; type: ChannelType; isPublic?: boolean }>;
   activeChannelId: string | null;
   onSelectChannel: (id: string) => void;
+  onJoinVoice: (channelId: string, channelName: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -76,14 +88,23 @@ function CategorySection({
       <div className={`grid ${collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]"} transition-[grid-template-rows] duration-200`}>
         <div className="overflow-hidden">
           <div className="flex flex-col gap-0.5 px-0.5">
-            {channels.map((ch) => (
-              <ChannelItem
-                key={ch.id}
-                channel={ch}
-                isActive={ch.id === activeChannelId}
-                onClick={() => onSelectChannel(ch.id)}
-              />
-            ))}
+            {channels.map((ch) =>
+              ch.type === "voice" ? (
+                <VoiceChannel
+                  key={ch.id}
+                  channel={ch}
+                  isActive={ch.id === activeChannelId}
+                  onJoin={() => onJoinVoice(ch.id, ch.name)}
+                />
+              ) : (
+                <ChannelItem
+                  key={ch.id}
+                  channel={ch}
+                  isActive={ch.id === activeChannelId}
+                  onClick={() => onSelectChannel(ch.id)}
+                />
+              ),
+            )}
           </div>
         </div>
       </div>
@@ -350,12 +371,22 @@ export default function ChannelSidebar({ onBack }: { onBack?: () => void }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [userPopoverOpen, setUserPopoverOpen] = useState(false);
 
+  const joinVoiceChannel = useVoiceStore((s) => s.joinChannel);
+
   const selectedServer = servers.find((s) => s.id === selectedServerId);
 
   const handleSelectChannel = (id: string) => {
     selectChannel(id);
     fetchMessages(id);
   };
+
+  const handleJoinVoice = useCallback(
+    (channelId: string, channelName: string) => {
+      if (!selectedServerId) return;
+      joinVoiceChannel(selectedServerId, channelId, channelName);
+    },
+    [selectedServerId, joinVoiceChannel],
+  );
 
   // Group channels by category
   const grouped = categories.map((cat) => ({
@@ -410,6 +441,7 @@ export default function ChannelSidebar({ onBack }: { onBack?: () => void }) {
             channels={uncategorized}
             activeChannelId={selectedChannelId}
             onSelectChannel={handleSelectChannel}
+            onJoinVoice={handleJoinVoice}
           />
         )}
         {grouped.map((g) => (
@@ -419,9 +451,12 @@ export default function ChannelSidebar({ onBack }: { onBack?: () => void }) {
             channels={g.channels}
             activeChannelId={selectedChannelId}
             onSelectChannel={handleSelectChannel}
+            onJoinVoice={handleJoinVoice}
           />
         ))}
       </div>
+
+      <VoicePanel />
 
       <div className="flex items-center gap-2 border-t border-border bg-bg-deepest px-2 py-2">
         <div className="relative">

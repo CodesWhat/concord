@@ -16,6 +16,7 @@ import {
   removeConnection,
   hasOtherConnections,
 } from "./connections.js";
+import * as voice from "../services/voice.js";
 import {
   HEARTBEAT_INTERVAL,
   startHeartbeatChecker,
@@ -106,6 +107,9 @@ export function initGateway(httpServer: HttpServer): void {
             status: "offline",
           });
         }
+
+        // Disconnect user from all voice channels
+        voice.disconnectUser(state.userId);
       }
     });
 

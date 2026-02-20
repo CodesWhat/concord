@@ -37,6 +37,7 @@ export enum GatewayEvent {
   REACTION_ADD = "REACTION_ADD",
   REACTION_REMOVE = "REACTION_REMOVE",
   DM_MESSAGE_CREATE = "DM_MESSAGE_CREATE",
+  VOICE_STATE_UPDATE = "VOICE_STATE_UPDATE",
 }
 
 // Wire format: every message is { op, d, t?, s? }
@@ -71,6 +72,16 @@ export interface ReadyPayload {
     serverId: string;
     name: string;
     type: string;
+  }>;
+  voiceStates?: Array<{
+    channelId: string;
+    users: Record<string, {
+      muted: boolean;
+      deafened: boolean;
+      video: boolean;
+      streaming: boolean;
+      joinedAt: string;
+    }>;
   }>;
 }
 
