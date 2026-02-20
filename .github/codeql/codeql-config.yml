@@ -1,0 +1,4 @@
+name: concord CodeQL config
+
+queries:
+  - uses: security-and-quality
