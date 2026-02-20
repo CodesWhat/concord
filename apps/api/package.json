@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.991.0",
-    "@aws-sdk/s3-request-presigner": "^3.991.0",
+    "@aws-sdk/s3-request-presigner": "^3.994.0",
     "@concord/shared": "workspace:*",
     "@fastify/cors": "^11.0.0",
     "@fastify/multipart": "^9.4.0",
