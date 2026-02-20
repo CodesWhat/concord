@@ -86,7 +86,7 @@ jobs:
           cosign sign --yes ${images}
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v3
         with:
           subject-name: ghcr.io/${{ github.repository }}-api
           subject-digest: ${{ steps.build.outputs.digest }}
@@ -160,7 +160,7 @@ jobs:
           cosign sign --yes ${images}
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v3
         with:
           subject-name: ghcr.io/${{ github.repository }}-web
           subject-digest: ${{ steps.build.outputs.digest }}
