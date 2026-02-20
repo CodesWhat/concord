@@ -23,7 +23,11 @@
       "esbuild",
       "lefthook",
       "sharp"
-    ]
+    ],
+    "overrides": {
+      "fast-xml-parser": ">=5.3.6",
+      "minimatch@<10": ">=10.2.1"
+    }
   },
   "dependencies": {
     "tslib": "^2.8.1"
