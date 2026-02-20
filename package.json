@@ -25,6 +25,7 @@
       "sharp"
     ],
     "overrides": {
+      "bn.js": ">=5.2.3",
       "fast-xml-parser": ">=5.3.6",
       "minimatch@<10": ">=10.2.1"
     }
