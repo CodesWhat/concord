@@ -128,7 +128,7 @@ Self-hosted Concord instances are private by default. But communities want disco
 
 ---
 
-### Phase 1 — Chat MVP + Forums (v0.2.0) 🔨 IN PROGRESS
+### Phase 1 — Chat MVP + Forums (v0.3.0) ✅
 
 > **Goal:** A usable chat platform you'd actually want to use daily. Install it, invite friends, start talking. Plus forum channels — because this is how we differentiate from day one.
 
@@ -151,56 +151,67 @@ Self-hosted Concord instances are private by default. But communities want disco
 | Logout / user settings popover | Done |
 | Server creation modal (replaces window.prompt) | Done |
 | Thread creation modal | Done |
-| **Forum channels** — posts with titles, markdown, upvote/downvote, comments | In Progress |
-| **Forum frontend** — post list, post detail, vote UI, create post | In Progress |
+| **Forum channels** — posts with titles, markdown, upvote/downvote, comments | Done |
+| **Forum frontend** — post list, post detail, vote UI, create post | Done |
 | **Deployment config** — env-driven CORS/auth, nginx, Docker, .dockerignore | Done |
 | **OG meta tags** for Reddit/social link previews | Done |
-| User profiles (display name, avatar upload, status message, about) | Planned |
+| User profiles (display name, avatar upload, status message, about) | Done |
+| Message reactions (add/remove emoji with live gateway updates) | Done |
+| Direct messages (1:1 DM channels with real-time delivery) | Done |
+| Full-text message search with permission-aware results | Done |
+| Kick/ban members with role hierarchy enforcement | Done |
+| Password reset flow (email-based with SMTP) | Done |
+| Rate limiting (global + per-route via @fastify/rate-limit) | Done |
+| Auto-migration on API startup | Done |
+| Docker production config (healthchecks, auto-seed, env-driven) | Done |
 | Activity feed (consolidated mentions, replies) | Deferred to Phase 2 |
 
 **Target:** r/selfhosted launch + cloud demo at `concord.codeswhat.com`
 
 ---
 
-### Phase 2 — Voice, Moderation & Polish (v0.3.0)
+### Phase 2 — Voice, Video & Polish (v0.4.0) 🔨 IN PROGRESS
 
-> **Goal:** Voice/video, moderation tools, and UX polish. The full Discord-replacement feature set.
+> **Goal:** Voice/video and UX polish. The full Discord-replacement feature set.
 
-| Feature | Description |
+| Feature | Status |
 | --- | --- |
-| **Voice channels** | LiveKit integration. Persistent hop-in/hop-out rooms. Mute/deafen. Speaker indicators |
-| **Video chat** | Camera toggle in voice channels. Grid/spotlight view |
-| **Screensharing** | Share screen or window. Multiple simultaneous streams |
-| **Public forum toggle** | Per-forum-channel setting. When enabled: publicly readable without login, indexable by search engines, SEO-friendly URLs (`/s/:server/:forum/:post`) |
-| **Moderation tools** | Ban, kick, mute (timed), slowmode per-channel, audit log with filters |
-| **Automod engine** | Rule-based: spam detection, link filtering, word filters, raid protection |
-| **User profiles** | Full profile pages: display name, avatar upload, status message, about section |
-| **Activity feed** | Consolidated mentions, replies, reactions across all servers |
-| **iOS native wrapper** | WKWebView + LiveKit iOS SDK for background voice audio |
-| **Rate limiting** | Per-endpoint rate limits on auth and API routes |
+| **Voice channels** — LiveKit integration, persistent hop-in/hop-out rooms, mute/deafen, speaker indicators | Planned |
+| **Video chat** — Camera toggle in voice channels, grid/spotlight view | Planned |
+| **Screensharing** — Share screen or window, multiple simultaneous streams | Planned |
+| **Public forum toggle** — Per-forum-channel public readability, SEO-friendly URLs | Planned |
+| **Audit log** — Filterable log of moderation actions and server changes | Planned |
+| **Automod engine** — Spam detection, link filtering, word filters, raid protection | Planned |
+| **Activity feed** — Consolidated mentions, replies, reactions across all servers | Planned |
+| **iOS native wrapper** — WKWebView + LiveKit iOS SDK for background voice audio | Deferred to Phase 3 |
+| ~~Moderation tools~~ | ✅ Moved to Phase 1 (ban/kick/mute/slowmode done) |
+| ~~User profiles~~ | ✅ Moved to Phase 1 |
+| ~~Rate limiting~~ | ✅ Moved to Phase 1 |
 
 ---
 
-### Phase 3 — Scale, Search & Bots (v0.4.0)
+### Phase 3 — Scale, Search & Bots (v0.5.0)
 
-> **Goal:** Performance at scale, search that actually works, and a bot ecosystem.
+> **Goal:** Performance at scale, advanced search, and a bot ecosystem.
 
-| Feature | Description |
+| Feature | Status |
 | --- | --- |
-| **Full-text search** | PostgreSQL tsvector with GIN indexes. Cross-server, cross-channel |
-| **Search operators** | `from:user`, `in:#channel`, `has:link`, `has:image`, `before:date`, `after:date`, `mentions:@user`, `is:pinned` |
-| **Search results UI** | Results in context (surrounding messages), visual filters sidebar |
-| **Bot API** | REST + WebSocket API for bots. Bot accounts, tokens, permission scopes |
-| **Webhook system** | Incoming webhooks for integrations (GitHub, CI/CD, RSS, etc.) |
-| **Custom emoji** | Server-level emoji with role restrictions. Emoji picker integration |
-| **User settings** | Notification preferences, appearance, accessibility, keybinds |
-| **Performance** | Lazy member loading, virtual scrolling (React Virtuoso), connection sharding, message pagination optimization |
-| **Self-hosting hardening** | Docker Compose production config, backup/restore scripts, health checks, resource monitoring |
-| **Documentation** | Self-hosting guide, API reference, bot development guide, architecture docs |
+| **Full-text search** — PostgreSQL tsvector with GIN indexes, cross-server, cross-channel | Done (pulled forward to Phase 1) |
+| **Search results UI** — Results in context, visual filters sidebar | Done (pulled forward to Phase 1) |
+| **Self-hosting hardening** — Docker Compose production config, health checks, resource monitoring | Done (pulled forward to Phase 1) |
+| **Search operators** — `from:user`, `in:#channel`, `has:link`, `has:image`, `before:date`, `after:date`, `mentions:@user`, `is:pinned` | Planned |
+| **Bot API** — REST + WebSocket API for bots, bot accounts, tokens, permission scopes | Planned |
+| **Webhook system** — Incoming webhooks for integrations (GitHub, CI/CD, RSS, etc.) | Planned |
+| **Custom emoji** — Server-level emoji with role restrictions, emoji picker integration | Planned |
+| **User settings** — Notification preferences, appearance, accessibility, keybinds | Planned |
+| **Performance** — Lazy member loading, virtual scrolling (React Virtuoso), connection sharding, message pagination optimization | Planned |
+| **Backup/restore scripts** — Automated backup and point-in-time restore for self-hosted instances | Planned |
+| **Documentation** — Self-hosting guide, API reference, bot development guide, architecture docs | Planned |
+| **iOS native wrapper** — WKWebView + LiveKit iOS SDK for background voice audio | Moved from Phase 2 |
 
 ---
 
-### Phase 4 — Concord Forums & Cloud (v0.5.0)
+### Phase 4 — Concord Forums & Cloud (v0.6.0)
 
 > **Goal:** Launch the standalone Reddit-replacement frontend and the Concord Cloud public layer.
 
@@ -222,7 +233,7 @@ Self-hosted Concord instances are private by default. But communities want disco
 
 ---
 
-### Phase 5 — Ecosystem (v0.6.0)
+### Phase 5 — Ecosystem (v0.7.0+)
 
 > **Goal:** Migration tooling, encryption, plugins. The full platform. (v1.0 ships when battle-tested, not on a schedule.)
 
@@ -234,7 +245,7 @@ Self-hosted Concord instances are private by default. But communities want disco
 | **TTL-ed messages** | Configurable per-channel: 30d, 90d, 1y, indefinite |
 | **Plugin system** | Hook-based plugin API. Community plugins for proof-of-human, custom automod, integrations |
 | **Knowledge base** | Wiki-lite pages per server. Markdown, versioned, role-based edit permissions |
-| **Native mobile apps** | React Native or Expo. iOS wrapper from Phase 2 becomes foundation |
+| **Native mobile apps** | React Native or Expo. iOS wrapper from Phase 3 becomes foundation |
 | **Custom themes** | Free theme customization (accent color, backgrounds). No paywall |
 | **Server folders** | Group servers in the rail. Drag to reorder |
 
@@ -303,9 +314,9 @@ Concord Cloud serves two audiences:
 | Revenue Stream | When |
 | --- | --- |
 | GitHub Sponsors / Open Collective | Now |
-| Managed hosting (Concord Cloud) | After v0.3.0 (voice + forums) |
+| Managed hosting (Concord Cloud) | After v0.4.0 (voice + forums) |
 | Support contracts for large deployments | After v1.0.0 |
-| Managed forum hosting for communities | After v0.5.0 (forums frontend) |
+| Managed forum hosting for communities | After v0.6.0 (forums frontend) |
 
 The AGPL license is the monetization protection. Anyone running a modified Concord as a service must share their changes. This prevents competitors from taking the code closed-source without contributing back. No CLA means even the original maintainers can't relicense — the community always has the code.
 
