@@ -21,6 +21,15 @@
   <a href="https://github.com/CodesWhat/concord/commits/main"><img src="https://img.shields.io/github/last-commit/CodesWhat/concord?style=flat" alt="Last commit"></a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/CodesWhat/concord/actions/workflows/ci.yml"><img src="https://github.com/CodesWhat/concord/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/CodesWhat/concord"><img src="https://codecov.io/gh/CodesWhat/concord/graph/badge.svg" alt="Codecov"></a>
+  <a href="https://snyk.io/test/github/CodesWhat/concord"><img src="https://snyk.io/test/github/CodesWhat/concord/badge.svg" alt="Snyk"></a>
+  <a href="https://securityscorecards.dev/viewer/?uri=github.com/CodesWhat/concord"><img src="https://api.securityscorecards.dev/projects/github.com/CodesWhat/concord/badge" alt="OpenSSF Scorecard"></a>
+  <a href="https://socket.dev/npm/package/concord"><img src="https://socket.dev/api/badge/npm/package/concord" alt="Socket"></a>
+  <a href="https://app.fossa.com/projects/git%2Bgithub.com%2FCodesWhat%2Fconcord"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2FCodesWhat%2Fconcord.svg?type=shield" alt="FOSSA Status"></a>
+</p>
+
 <br>
 
 > **Concord** is a self-hosted, open-source Discord alternative. Familiar enough to feel like home, better enough to justify the switch. One `docker compose up` to own your community's data. AGPL-3.0, no CLA.
