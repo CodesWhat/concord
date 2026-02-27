@@ -17,7 +17,7 @@
     "db:studio": "NODE_OPTIONS='--import ./bigint-patch.mjs --import tsx' drizzle-kit studio"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.994.0",
+    "@aws-sdk/client-s3": "^3.999.0",
     "@aws-sdk/s3-request-presigner": "^3.994.0",
     "@concord/shared": "workspace:*",
     "@fastify/cors": "^11.0.0",
