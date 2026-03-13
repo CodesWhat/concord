@@ -31,7 +31,7 @@
     "fastify": "^5.2.1",
     "ioredis": "^5.9.3",
     "livekit-server-sdk": "^2.15.0",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^8.0.2",
     "postgres": "^3.4.8",
     "web-push": "^3.6.7",
     "ws": "^8.19.0"
